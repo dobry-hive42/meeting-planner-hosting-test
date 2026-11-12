@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test hostování</title>
+<style>
+  body { font: 18px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #111; }
+  p { margin: 0 0 16px; }
+  .ok { color: #0a6b2e; } .err { color: #b00020; }
+  @media (prefers-color-scheme: dark) { body { background: #121212; color: #eee; } .ok { color: #6fd18f; } .err { color: #ff8a80; } }
+</style>
+</head>
+<body>
+<p id="s">Úložiště: …</p>
+<p id="a">Apps Script API: načítám…</p>
+<script>
+var API = "https://script.google.com/macros/s/AKfycbx_pnR_TwG6n5GL1qJujl0IA0uD2OqVPyS-cbn5GCyNdr6vjud4X9A2BZejxtWcj6fE/exec";
+var s = document.getElementById("s"), a = document.getElementById("a"), n = 0;
+try {
+  n = +(localStorage.getItem("t") || 0) + 1;
+  localStorage.setItem("t", n);
+  s.textContent = "Úložiště funguje. Návštěva č. " + n + ". Obnov stránku – číslo má vzrůst.";
+  s.className = "ok";
+} catch (e) { s.textContent = "Úložiště NEFUNGUJE: " + e; s.className = "err"; }
+fetch(API + "?api=1&n=" + n)
+  .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(function (d) {
+    a.textContent = "Apps Script API funguje. Server vrátil čas " + d.serverTime + " a číslo návštěvy " + d.echo + ".";
+    a.className = "ok";
+  })
+  .catch(function (e) { a.textContent = "Apps Script API NEFUNGUJE: " + e; a.className = "err"; });
+</script>
+</body>
+</html>
