@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><script>window.PLANNER_API="https://script.google.com/macros/s/AKfycbwVacJo3auGJ0HUyRNYstRkbCgkc2H_1oqVzz3fTd1jCoV5qC3JllN5KwLVNGsVqrUBLg/exec";</script></head><body><title>Team Meeting Planner</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><script>window.PLANNER_API="https://script.google.com/macros/s/AKfycbwVacJo3auGJ0HUyRNYstRkbCgkc2H_1oqVzz3fTd1jCoV5qC3JllN5KwLVNGsVqrUBLg/exec";</script></head><body><title>Meeting Planner</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: one column, phone first; calendar grid is the hero of each poll, ranking right under it */
@@ -203,7 +203,7 @@ const KEY="team-meeting-planner-proto-v4";
 /* Verze B (issue #3, #7): with window.PLANNER_API set (web build), data live on the server, not in this browser. */
 const API=(typeof window!=="undefined"&&window.PLANNER_API)||"";const LIVE=!!API;const LKEY="team-meeting-planner-live-v1";
 let LS={tokens:{},admin:"",setup:null},LV={loading:true,err:"",msg:null,me:{},busy:false};
-const LPOLL=LIVE?(new URLSearchParams(location.search).get("p")||""):"";
+let LPOLL=LIVE?(new URLSearchParams(location.search).get("p")||""):"";
 const pad=n=>String(n).padStart(2,"0");
 const D=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
 const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -389,13 +389,13 @@ function curPoll(){return S.route.v==="poll"?S.polls[S.route.id]:null}
 function sortedInvitees(p){return p.invitees.slice().sort((a,b)=>(a===S.organizer?-1:b===S.organizer?1:0)||ROLE_ORDER[role(p,a)]-ROLE_ORDER[role(p,b)])}
 
 function render(){try{renderInner()}catch(err){try{console.error(err)}catch(x){}
-  $app.innerHTML=`<div class="banner warn" role="alert"><b>Something went wrong on this page.</b><p class="small">${esc(err&&err.message||err)}</p><p class="small">Your saved example data may be from an older version. Resetting it usually fixes this.</p><div><button class="btn small primary" data-act="reset">Reset example data</button></div></div>`;try{renderAdmin()}catch(x){}}}
+  $app.innerHTML=`<div class="banner warn" role="alert"><b>Something went wrong on this page.</b><p class="small">${esc(err&&err.message||err)}</p>${LIVE?`<p class="small">Your answers saved earlier are safe. Reloading the page usually fixes this.</p><div><button class="btn small primary" onclick="location.reload()">Reload the page</button></div>`:`<p class="small">Your saved example data may be from an older version. Resetting it usually fixes this.</p><div><button class="btn small primary" data-act="reset">Reset example data</button></div>`}</div>`;try{renderAdmin()}catch(x){}}}
 function renderInner(){
   if(LIVE&&liveScreen())return;
   const v=S.viewer;let html="";
   if(v==="guest"){html=`<div class="previewbar" style="margin-bottom:16px"><span>Viewing your booking link as a guest. Bookings made here are kept as example data.</span><button class="btn small" data-act="guest-back">Back to managing</button></div>`+renderGuest()}
   else{
-    html+=`<header class="top"><div class="brand">Team Meeting Planner${LIVE?"":"<small>prototype · example data</small>"}</div>`;
+    html+=`<header class="top"><div class="brand">Meeting Planner${LIVE?"":"<small>prototype · example data</small>"}</div>`;
     if(S.route.v!=="poll"&&(orgTab!=="results"||previewAs))resetTabs();
     if(v===S.organizer){
       html+=`<nav class="nav" aria-label="Main">
@@ -801,7 +801,7 @@ function renderBookingSetup(){
 }
 function renderGuest(){
   const b=S.booking;const days=bookingSlots().map(d=>({date:d.date,slots:d.slots.filter(s=>!s.busy&&!s.removed&&!s.taken)})).filter(d=>d.slots.length);
-  let h=`<div class="stack"><header class="top"><div class="brand">Team Meeting Planner<small>prototype</small></div></header>`;
+  let h=`<div class="stack"><header class="top"><div class="brand">Meeting Planner<small>prototype</small></div></header>`;
   if(bookState.done){const x=bookState.done;const st=x.date.replace(/-/g,"")+"T"+x.time.replace(":","")+"00";const em=toHM(toMin(x.time)+b.duration);const en=x.date.replace(/-/g,"")+"T"+em.replace(":","")+"00";
     return h+`<div class="banner win"><b>Booked: ${fmtDay(x.date)}, ${x.time}–${em}</b><p class="small">Martin gets it in his calendar. You can add it to yours:</p><div><a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(b.title)}&dates=${st}/${en}&ctz=Europe/Prague" target="_blank" rel="noopener">Add to Google Calendar</a></div></div>
       <div><button class="btn" data-act="g-again">Book another time</button></div></div>`;}
@@ -1026,7 +1026,7 @@ function liveErr(code){return({no_poll:"This poll doesn't exist (any more). Chec
   busy:"The server is busy. Try again in a moment.",offline:"Can't reach the server. Check your connection and try again."})[code]||`Something went wrong (${code}). Try again in a moment.`}
 function applyPoll(r){const sp=r.poll;
   const p={...sp,status:"sent",example:false,invitees:[],answers:{},submitted:{},dismissed:{},flex:{},tokens:{},needsRunoff:false,flexRound:!!sp.flexRound,parent:sp.parent||null,next:sp.next||null,
-    slots:sp.mode==="list"?(sp.slots||[]).map(id=>({id})):undefined,
+    slots:sp.mode==="list"?(sp.slots||[]).map(x=>typeof x==="string"?{id:x}:x):undefined,
     highlight:sp.highlight||[],excl:sp.excl||{},from:sp.dates[0],to:sp.dates[sp.dates.length-1],hours:null,created:TODAY};
   r.people.forEach(x=>{S.people[x.pid]={id:x.pid,name:x.name,email:""};p.invitees.push(x.pid);p.answers[x.pid]=x.answers||{};p.submitted[x.pid]=!!x.submitted;p.dismissed[x.pid]=x.dismissed||{};p.flex[x.pid]=x.flex||0});
   S.polls[sp.id]=p;if(!S.order.includes(sp.id))S.order.push(sp.id);LV.me[sp.id]=r.me||null;LV.org=sp.org||"";return p;}
@@ -1042,18 +1042,22 @@ async function liveLoad(){LV.loading=true;LV.err="";render();
   try{if(isOrg()){const l=await api({action:"admin.list",key:LS.admin});
       if(!l.ok){if(l.error==="not_allowed"){LS.admin="";lsSave();LV.err="This organiser link isn't valid (any more)."}else LV.err=liveErr(l.error)}
       else{S.order=[];for(const x of l.polls){const r=await liveGet(x.id);if(r.ok)applyPoll(r)}}}
-    if(LPOLL&&!S.polls[LPOLL]){const r=await liveGet(LPOLL);if(r.ok)applyPoll(r);else LV.err=liveErr(r.error)}}
+    if(LPOLL&&!S.polls[LPOLL]){let r=await liveGet(LPOLL);
+      /* participants never have to look for round 2: the round-1 link opens it (Martin, 14. 11. 2026) */
+      for(let i=0;i<3&&r.ok&&r.poll.next&&!isOrg();i++){LPOLL=r.poll.next;S.route={v:"poll",id:LPOLL};try{history.replaceState(null,"",location.pathname+"?p="+encodeURIComponent(LPOLL))}catch(e){}r=await liveGet(LPOLL)}
+      if(r.ok)applyPoll(r);else LV.err=liveErr(r.error)}}
   catch(e){LV.err=liveErr(e.message==="offline"?"offline":"server")}
   LV.loading=false;render();}
-async function liveRefresh(id){if(!id||draftChanged())return;try{const r=await api({action:"get",poll:id,token:LS.tokens[id]||""});if(r.ok){applyPoll(r);render()}}catch(e){}}
+async function liveRefresh(id){if(!id||draftChanged())return;try{const r=await api({action:"get",poll:id,token:LS.tokens[id]||""});
+  if(r.ok&&r.poll.next&&!isOrg()){location.replace(location.pathname+"?p="+encodeURIComponent(r.poll.next));return}if(r.ok){applyPoll(r);render()}}catch(e){}}
 window.addEventListener("hashchange",()=>{if(LIVE&&/(^|[#&])(k|admin)=/.test(location.hash))location.reload()});   /* opening the e-mailed link in a tab that already shows the poll */
 document.addEventListener("visibilitychange",()=>{if(LIVE&&document.visibilityState==="visible"&&S.route.v==="poll")liveRefresh(S.route.id)});
 /* screens that replace the whole page: loading, errors, landing, joining (Q38) */
 function liveScreen(){liveRoles();let h="";
-  const head=`<header class="top"><div class="brand">Team Meeting Planner</div></header>`;
+  const head=`<header class="top"><div class="brand">Meeting Planner</div></header>`;
   if(LV.loading)h=head+`<p class="muted" role="status">Loading…</p>`;
   else if(LV.err)h=head+`<div class="banner warn" role="alert"><b>${esc(LV.err)}</b><div><button class="btn small" data-act="live-retry">Try again</button></div></div>`;
-  else if(!isOrg()&&!LPOLL)h=head+`<div class="card"><h1>Team Meeting Planner</h1><p>Open the link you got from the organiser to see the poll.</p></div>`;
+  else if(!isOrg()&&!LPOLL)h=head+`<div class="card"><h1>Meeting Planner</h1><p>Open the link you got from the organiser to see the poll.</p></div>`;
   else if(!isOrg()&&S.viewer==="__anon__"){const p=S.polls[LPOLL];h=head+`<div class="stack">${pollInfo(p,true)}${p.closed?(p.final?finalBanner(p):p.next?nextBanner(p):`<div class="banner info"><b>Voting on this poll has stopped.</b></div>`):renderJoin(p)}</div>`}
   else return false;
   $app.innerHTML=h+liveFooter();renderAdmin();renderSaveBar();return true;}
