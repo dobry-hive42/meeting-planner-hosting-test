@@ -435,7 +435,7 @@ function renderPoll(p){
   if(orgTab==="results"){
     h+=pollInfo(p,false);
     if(p.closed&&p.final)h+=finalBanner(p);
-    h+=renderGroupCalendar(p)+renderRanking(p)+renderPeople(p)+renderOrgTools(p);
+    h+=renderGroupCalendar(p)+renderRanking(p)+renderPeople(p)+(LIVE&&p.final?"":renderOrgTools(p));   /* decided: only results, who voted how, Reopen (Martin, 14. 11.) */
   }else if(orgTab==="mine"&&LIVE&&!p.invitees.includes(S.organizer)){
     h+=`<div class="banner info"><b>To vote yourself, join like everyone else.</b><p class="small">Use your own name and e-mail. Your answers then count the same as anyone's.</p></div>`+(p.closed?"":renderJoin(p));
   }else if(orgTab==="mine"){
@@ -456,8 +456,8 @@ function renderOrgBar(p){
   const st=p.closed?"Voting closed":p.status==="draft"?"Draft · not sent":(LIVE?"Open · closes ":"Sent · closes ")+fmtDay(p.deadline);
   return `<section class="card" id="org-bar" aria-label="Manage this poll"><div class="between"><h1>${esc(p.title)}</h1><span class="tag">${st}</span></div>
     ${p.status==="draft"?`<p class="small">Nothing has been sent yet. Check it, use “Preview as…” to see what an invitee sees, then send the invitations.</p>`:""}
-    <div class="row"><button class="btn small" data-act="edit-setup">Edit poll</button>${p.status==="draft"?`<button class="btn small primary" data-act="send-open" aria-expanded="${sendOpen}">Send invitations…</button>`:""}${p.next?"":p.closed?`<button class="btn small" data-act="reopen">Reopen voting</button>`:`<button class="btn small" data-act="go-decide">Close voting…</button>`}</div>${LIVE&&p.parent?`<p class="small">This is round 2. <a href="${esc(location.pathname+"?p="+encodeURIComponent(p.parent)+"&round1=1")}">Round 1 results</a></p>`:""}
-    ${sendOpen&&p.status==="draft"?renderSendPanel(p):""}${LIVE?liveShareBox(p):""}</section>`;
+    <div class="row">${LIVE&&p.final?"":`<button class="btn small" data-act="edit-setup">Edit poll</button>`}${p.status==="draft"?`<button class="btn small primary" data-act="send-open" aria-expanded="${sendOpen}">Send invitations…</button>`:""}${p.next?"":p.closed?`<button class="btn small" data-act="reopen">Reopen voting</button>`:`<button class="btn small" data-act="go-decide">Close voting…</button>`}</div>${LIVE&&p.parent?`<p class="small">This is round 2. <a href="${esc(location.pathname+"?p="+encodeURIComponent(p.parent)+"&round1=1")}">Round 1 results</a></p>`:""}
+    ${sendOpen&&p.status==="draft"?renderSendPanel(p):""}${LIVE&&!(p.final&&!p.next)?liveShareBox(p):""}</section>`;
 }
 function pollInfo(p,withTitle){const resp=responded(p).length;
   return `<div class="stack" style="gap:8px">${withTitle?`<span class="eyebrow">${p.mode==="list"?"Round 2 · run-off":"Find a date"} · organised by ${esc(nameOf(S.organizer))}</span>
@@ -561,7 +561,7 @@ function renderRanking(p){
   const c=liveCtx(p);
   if(!counted(p).some(x=>c.submitted[x]))return `<section class="card"><h2>Best options so far</h2><p class="muted">The ranking appears as soon as the first person answers.</p></section>`;
   const r=ranking(p,c).slice(0,p.mode==="list"?p.slots.length:5);const n=counted(p).length;
-  let h=`<section class="card" aria-labelledby="rk-h"><div class="between"><h2 id="rk-h">Best options so far</h2><span class="small muted">${viewerIsOrg()?"Host and must-attend first, then key people, then everyone":"Dates the host can make come first"}</span></div><div class="rank">`;
+  let h=`<section class="card" aria-labelledby="rk-h"><div class="between"><h2 id="rk-h">${p.closed&&p.final?"Results":"Best options so far"}</h2><span class="small muted">${viewerIsOrg()?"Host and must-attend first, then key people, then everyone":"Dates the host can make come first"}</span></div><div class="rank">`;
   r.forEach((s,i)=>{const open=!!openRank[s.id];const yc=s.y.filter(x=>role(p,x)!=="opt").length,mc=s.m.filter(x=>role(p,x)!=="opt").length,nc=s.n.filter(x=>role(p,x)!=="opt").length;
     h+=`<div class="ritem${i===0?" top":""}${open?" open":""}"><div class="rhead"><span class="rname">${i+1}. ${esc(slotLabel(p,s.id))}</span>
       <button class="btn small" data-act="toggle-rank" data-sid="${s.id}" aria-expanded="${open}">${open?"Hide":"Who"} <span class="chevron" aria-hidden="true">▾</span></button></div>
@@ -577,7 +577,7 @@ function renderPeople(p){
   if(flexers.length){const names=flexers.map(x=>esc(nameOf(x)));const list=names.length>1?names.slice(0,-1).join(", ")+" and "+names[names.length-1]:names[0];
     h+=`<div class="banner win"><b>👏 Thanks for making room, ${list}!</b><p class="small">${names.length>1?`${list} each changed a “No”`:`${list} changed a “No”`} so more of us can meet.</p></div>`;}
   h+=`<div class="people">`;
-  const manage=LIVE&&S.viewer===S.organizer&&!previewing()&&orgTab==="results";
+  const manage=LIVE&&S.viewer===S.organizer&&!previewing()&&orgTab==="results"&&!p.final;
   sortedInvitees(p).forEach(x=>{h+=`<div class="prow"><span>${esc(nameOf(x))}${x===me()?" (you)":""} ${manage?"":roleTag(p,x)} ${clapTag(p,x)}</span><span class="row"><span class="tag">${p.submitted[x]?"Answered":"No answer yet"}</span>${manage?liveManage(p,x):""}</span></div>`});
   if(manage)h+=`<p class="small muted">${esc(ROLE_HELP)} “Remove” hides a person and their answers from everyone.</p>`;
   return h+`</div></section>`;
