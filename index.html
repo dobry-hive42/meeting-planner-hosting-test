@@ -456,7 +456,7 @@ function renderOrgBar(p){
   const st=p.closed?"Voting closed":p.status==="draft"?"Draft · not sent":(LIVE?"Open · closes ":"Sent · closes ")+fmtDay(p.deadline);
   return `<section class="card" id="org-bar" aria-label="Manage this poll"><div class="between"><h1>${esc(p.title)}</h1><span class="tag">${st}</span></div>
     ${p.status==="draft"?`<p class="small">Nothing has been sent yet. Check it, use “Preview as…” to see what an invitee sees, then send the invitations.</p>`:""}
-    <div class="row"><button class="btn small" data-act="edit-setup">Edit poll</button>${p.status==="draft"?`<button class="btn small primary" data-act="send-open" aria-expanded="${sendOpen}">Send invitations…</button>`:""}${p.closed?`<button class="btn small" data-act="reopen">Reopen voting</button>`:`<button class="btn small" data-act="go-decide">Close voting…</button>`}</div>
+    <div class="row"><button class="btn small" data-act="edit-setup">Edit poll</button>${p.status==="draft"?`<button class="btn small primary" data-act="send-open" aria-expanded="${sendOpen}">Send invitations…</button>`:""}${p.next?"":p.closed?`<button class="btn small" data-act="reopen">Reopen voting</button>`:`<button class="btn small" data-act="go-decide">Close voting…</button>`}</div>${LIVE&&p.parent?`<p class="small">This is round 2. <a href="${esc(location.pathname+"?p="+encodeURIComponent(p.parent)+"&round1=1")}">Round 1 results</a></p>`:""}
     ${sendOpen&&p.status==="draft"?renderSendPanel(p):""}${LIVE?liveShareBox(p):""}</section>`;
 }
 function pollInfo(p,withTitle){const resp=responded(p).length;
@@ -590,7 +590,7 @@ function renderOrgTools(p){
   if(!p.closed&&p.status!=="draft"){
     h+=`<div class="stack" style="gap:8px"><h3>Ask for flexibility</h3><p class="small muted">Shows each person the dates where only their “No” stands in the way. Applies to people who already answered.</p>
       <div><button class="btn small${p.flexRound?" toggled":""}" data-act="flex-round" aria-pressed="${p.flexRound}">${p.flexRound?"Flexibility round is on · Turn off":"Start flexibility round"}</button></div></div>`;}
-  if(LIVE?!p.final:!p.closed){
+  if(LIVE?!p.final&&!p.next:!p.closed){
     h+=`<div class="stack" style="gap:8px" id="decide"><h3>Decide</h3>${top.length?`<label class="f" for="final-pick">Pick the final ${p.mode==="day"?"date":"time"}<select id="final-pick">${top.slice(0,8).map(s=>`<option value="${s.id}">${esc(slotLabel(p,s.id))} · ${s.total} can come${s.reqOk?"":" · host or must-attend missing"}</option>`).join("")}</select></label>
       <div class="row"><button class="btn small primary" data-act="close">Close voting and confirm</button>${p.mode!=="list"?`<button class="btn small" data-act="runoff">Prepare run-off with top 3</button>`:""}</div>`:`<p class="small muted">You can decide once people have answered.</p>`}
       <p class="small muted">${LIVE?(p.closed?"Voting has stopped. Pick the final date to tell everyone.":p.autoClose?`Voting stops after ${fmtDay(p.deadline)}, or earlier when you close it. Then you pick the final date.`:"Voting stays open until you close it."):p.autoClose?`Voting stops on ${fmtDay(p.deadline)} (or earlier when you close it). You then confirm the result; if the host, must-attend or key people can't make the best date, a follow-up round with the top 3 is prepared for you to check. Nothing is sent without you.`:"Voting stays open until you close it. You then confirm the result."}</p></div>`;
@@ -1042,9 +1042,11 @@ async function liveLoad(){LV.loading=true;LV.err="";render();
   try{if(isOrg()){const l=await api({action:"admin.list",key:LS.admin});
       if(!l.ok){if(l.error==="not_allowed"){LS.admin="";lsSave();LV.err="This organiser link isn't valid (any more)."}else LV.err=liveErr(l.error)}
       else{S.order=[];for(const x of l.polls){const r=await liveGet(x.id);if(r.ok)applyPoll(r)}}}
+    if(LPOLL&&isOrg()&&S.polls[LPOLL]&&S.polls[LPOLL].next&&new URLSearchParams(location.search).get("round1")!=="1"){LPOLL=S.polls[LPOLL].next;S.route={v:"poll",id:LPOLL};try{history.replaceState(null,"",location.pathname+"?p="+encodeURIComponent(LPOLL))}catch(e){}}
     if(LPOLL&&!S.polls[LPOLL]){let r=await liveGet(LPOLL);
       /* participants never have to look for round 2: the round-1 link opens it (Martin, 14. 11. 2026) */
-      for(let i=0;i<3&&r.ok&&r.poll.next&&!isOrg();i++){LPOLL=r.poll.next;S.route={v:"poll",id:LPOLL};try{history.replaceState(null,"",location.pathname+"?p="+encodeURIComponent(LPOLL))}catch(e){}r=await liveGet(LPOLL)}
+      const stay=new URLSearchParams(location.search).get("round1")==="1";
+      for(let i=0;i<3&&r.ok&&r.poll.next&&!stay;i++){LPOLL=r.poll.next;S.route={v:"poll",id:LPOLL};try{history.replaceState(null,"",location.pathname+"?p="+encodeURIComponent(LPOLL))}catch(e){}r=await liveGet(LPOLL)}
       if(r.ok)applyPoll(r);else LV.err=liveErr(r.error)}}
   catch(e){LV.err=liveErr(e.message==="offline"?"offline":"server")}
   LV.loading=false;render();}
