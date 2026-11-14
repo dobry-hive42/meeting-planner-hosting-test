@@ -1,35 +1,1106 @@
-<!doctype html>
-<html lang="cs">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test hostování</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><script>window.PLANNER_API="https://script.google.com/macros/s/AKfycbwVacJo3auGJ0HUyRNYstRkbCgkc2H_1oqVzz3fTd1jCoV5qC3JllN5KwLVNGsVqrUBLg/exec";</script></head><body><title>Team Meeting Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <style>
-  body { font: 18px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #111; }
-  p { margin: 0 0 16px; }
-  .ok { color: #0a6b2e; } .err { color: #b00020; }
-  @media (prefers-color-scheme: dark) { body { background: #121212; color: #eee; } .ok { color: #6fd18f; } .err { color: #ff8a80; } }
+/* Layout: one column, phone first; calendar grid is the hero of each poll, ranking right under it */
+:root{
+  --bg:#F5F6FA; --surface:#FFFFFF; --ink:#171A2C; --muted:#5B6177; --line:#DCE0EA; --line-strong:#B9BFD0;
+  --accent:#3346C8; --accent-ink:#FFFFFF; --accent-soft:#E7EAFB;
+  --yes:#1D8A57; --yes-soft:#D5F0E2; --maybe:#A86E12; --maybe-soft:#FBECCB; --no:#BF3A34; --no-soft:#F8DEDC;
+  --tag:#ECEEF3; --tag-ink:#4A5066; --hl:#EEF0FB; --we:#DEE1EA; --heat:51,70,200;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Inter", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12141F; --surface:#1B1E2D; --ink:#ECEEF6; --muted:#A3A9C0; --line:#2E3348; --line-strong:#4A5070;
+  --accent:#8C9BFF; --accent-ink:#11142A; --accent-soft:#272D52;
+  --yes:#4CC98A; --yes-soft:#173A2A; --maybe:#E9B04E; --maybe-soft:#3D3018; --no:#F07A72; --no-soft:#432121;
+  --tag:#272B3D; --tag-ink:#BFC4D8; --hl:#20253C; --we:#2C3148; --heat:140,155,255; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141F; --surface:#1B1E2D; --ink:#ECEEF6; --muted:#A3A9C0; --line:#2E3348; --line-strong:#4A5070;
+  --accent:#8C9BFF; --accent-ink:#11142A; --accent-soft:#272D52;
+  --yes:#4CC98A; --yes-soft:#173A2A; --maybe:#E9B04E; --maybe-soft:#3D3018; --no:#F07A72; --no-soft:#432121;
+  --tag:#272B3D; --tag-ink:#BFC4D8; --hl:#20253C; --we:#2C3148; --heat:140,155,255; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);margin:0}
+#app{max-width:760px;margin:0 auto;padding-block:16px 140px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:1.6rem} h2{font-size:1.2rem} h3{font-size:1rem;font-weight:500}
+p{margin:0}
+a{color:var(--accent);text-decoration:underline}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{font-family:var(--display);font-weight:700;font-size:1.05rem}
+.brand small{font-family:var(--body);font-weight:400;color:var(--muted);font-size:.8rem;margin-left:6px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.muted{color:var(--muted)} .small{font-size:.82rem}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.btn{font:inherit;font-weight:600;min-height:44px;padding:8px 16px;border-radius:10px;border:2px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.btn:hover{background:var(--accent-soft)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{min-height:36px;padding:4px 12px;font-size:.85rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.cell:focus-visible,.chip:focus-visible,.linkbtn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.navbtn{font:inherit;font-weight:600;min-height:40px;padding:6px 14px;border-radius:999px;border:2px solid var(--line-strong);background:transparent;color:var(--ink);cursor:pointer}
+.navbtn:hover{border-color:var(--accent)}
+.navbtn[aria-current="page"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.linkbtn{font:inherit;background:none;border:0;padding:4px 0;color:var(--accent);text-decoration:underline;cursor:pointer;min-height:32px}
+.tag{display:inline-block;background:var(--tag);color:var(--tag-ink);border-radius:4px;padding:1px 7px;font-size:.75rem;font-weight:500;white-space:nowrap}
+.banner{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;border:1px solid var(--line)}
+.banner.info{background:var(--accent-soft);border-color:transparent}
+.banner.win{background:var(--yes-soft);border-color:transparent}
+.banner.warn{background:var(--maybe-soft);border-color:transparent}
+/* brush */
+.brushes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.brush{font:inherit;font-weight:600;font-size:.85rem;min-height:48px;border-radius:10px;border:2px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;gap:2px}
+.brush .g{font-size:1rem}
+.brush[data-v="y"] .g{color:var(--yes)} .brush[data-v="m"] .g{color:var(--maybe)} .brush[data-v="n"] .g{color:var(--no)}
+.brush[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+/* calendar */
+.seg{display:inline-flex;border:2px solid var(--line-strong);border-radius:999px;overflow:hidden}
+.seg button{font:inherit;font-weight:600;font-size:.85rem;border:0;background:transparent;color:var(--ink);padding:6px 14px;min-height:38px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.month{font-family:var(--display);font-weight:500;font-size:.95rem;margin:10px 0 4px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;max-width:520px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.dow{font-size:.7rem;text-align:center;color:var(--muted);font-weight:600;padding-bottom:2px}
+.dow.hl{color:var(--accent)}
+.cell{position:relative;aspect-ratio:1/1;min-height:42px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.82rem;font-variant-numeric:tabular-nums;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;line-height:1.05;max-width:100%}
+.cell.hl{background:var(--hl);border-color:var(--line-strong)}
+.cell.off{visibility:hidden}
+.cell .mk{font-size:.9rem;font-weight:700}
+.cell[data-a="y"]{background:var(--yes-soft);border:2px solid var(--yes)} .cell[data-a="y"] .mk{color:var(--yes)}
+.cell[data-a="m"]{background:var(--maybe-soft);border:2px dashed var(--maybe)} .cell[data-a="m"] .mk{color:var(--maybe)}
+.cell[data-a="n"]{background:var(--no-soft);border:2px solid var(--no)} .cell[data-a="n"] .mk{color:var(--no)}
+.cell.heat{border:1px solid var(--line)}
+.cell.na,.cell.past{opacity:.38;cursor:default;border-style:dotted;background:transparent}
+.cell.picked{background:var(--accent);color:var(--accent-ink);border:2px solid var(--accent);font-weight:700}
+.cell.today{border:2px solid var(--ink)}
+.cell .tiny{font-size:.6rem;font-weight:600;letter-spacing:.02em}
+.dowbtn{font:inherit;font-size:.72rem;font-weight:700;color:var(--accent);background:none;border:0;text-decoration:underline;cursor:pointer;min-height:32px;padding:0}
+.cell.heat .cnt{font-weight:700;font-size:.9rem}
+.cell.sel{outline:3px solid var(--accent);outline-offset:1px}
+.cell .dot{position:absolute;top:3px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--no)}
+.cell .star{position:absolute;top:1px;left:3px;font-size:.7rem;color:var(--accent);font-weight:700}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:14px;height:14px;border-radius:4px;display:inline-block}
+/* hourly grid */
+.hgrid{display:flex;flex-direction:column;gap:8px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.hgrid .cell{aspect-ratio:auto;min-height:40px}
+.hlabel{font-size:.75rem;color:var(--muted);display:flex;align-items:center;font-weight:600;line-height:1.1}
+.hhead{font-size:.7rem;color:var(--muted);text-align:center;font-weight:600}
+/* lists */
+.rank{display:flex;flex-direction:column;gap:8px}
+.ritem{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.ritem.top{border:2px solid var(--accent)}
+.rhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.rname{font-weight:600}
+.bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--tag)}
+.bar i{display:block}
+.people{display:flex;flex-direction:column;gap:2px}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.prow:last-child{border-bottom:0}
+.who{display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+.who b{font-weight:600}
+.chevron{display:inline-block;transition:transform .2s}
+.open .chevron{transform:rotate(180deg)}
+/* forms */
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.85rem}
+input[type=text],input[type=date],input[type=email],input[type=time],select,textarea{font:inherit;font-weight:400;min-height:44px;padding:8px 10px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);width:100%;max-width:100%}
+textarea{min-height:120px}
+.check{display:flex;align-items:center;gap:8px;min-height:40px;font-weight:500;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:560px){.grid2{grid-template-columns:1fr 1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:.85rem;font-weight:600;min-height:40px;padding:4px 12px;border-radius:999px;border:2px solid var(--accent);background:var(--accent-soft);color:var(--accent);cursor:pointer;font-variant-numeric:tabular-nums}
+.chip.removed{background:transparent;border:2px dashed var(--line-strong);color:var(--muted);text-decoration:line-through}
+.chip.busy{background:var(--tag);border:2px solid transparent;color:var(--muted);cursor:not-allowed}
+.chip.extra{border-style:solid;background:var(--yes-soft);border-color:var(--yes);color:var(--yes)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.steps{display:flex;flex-direction:column;gap:16px}
+.stepno{font-family:var(--display);font-weight:700;color:var(--accent)}
+.linkbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.linkbox code{flex:1 1 200px;min-width:0;overflow-wrap:anywhere;font-size:.8rem;background:var(--tag);padding:6px 8px;border-radius:6px;user-select:all}
+/* save bar & admin */
+.savebar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;justify-content:center;z-index:20}
+.savebar .in{max-width:760px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.adminbtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;font:inherit;font-size:.8rem;font-weight:600;min-height:44px;padding:6px 14px;border-radius:999px;border:2px solid var(--ink);background:var(--surface);color:var(--ink);cursor:pointer}
+.adminbtn.lift{bottom:calc(var(--savebar-h,72px) + 12px)}
+/* organiser: actions on top, sticky Results / My vote / Preview switch, read-only preview */
+.tabbar{position:sticky;top:0;z-index:15;background:var(--bg);padding:6px 0}
+.tabbar .seg{display:flex;width:100%;box-sizing:border-box}
+.tabbar .seg button{flex:1;min-height:44px;padding:6px 8px}
+.previewbar{background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.previewbar .btn{border-color:var(--bg);color:var(--bg)}
+.previewbar .btn:hover{background:transparent;text-decoration:underline}
+#decide{scroll-margin-top:72px}
+.adminpanel{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:2px solid var(--ink);padding:16px max(16px,env(safe-area-inset-right,0px)) calc(72px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-height:70vh;overflow:auto}
+.adminpanel .in{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+/* toast & applause */
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(16px + env(safe-area-inset-top,0px));z-index:50;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;max-width:min(92vw,520px);font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.clap{position:fixed;z-index:60;font-size:28px;pointer-events:none;animation:rise 1.4s ease-out forwards}
+@keyframes rise{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1}100%{transform:translateY(-220px) scale(1.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.clap{display:none}.chevron{transition:none}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.cell.we:not(.picked):not(.heat):not([data-a="y"]):not([data-a="m"]):not([data-a="n"]){background:var(--we)}
+.cell.we .dn{color:var(--muted)}
+.cell.hol .dn{color:var(--no);font-weight:700}
+.cell.hol::after{content:"";position:absolute;left:18%;right:18%;bottom:3px;height:4px;background:var(--no);border-radius:2px}
+.cell.picked.hol::after{background:var(--accent-ink)}
+.cell.picked .dn{color:var(--accent-ink)!important}
+.exgrid{display:flex;flex-direction:column;gap:8px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.exrow{display:grid;grid-template-columns:78px minmax(0,1fr);gap:4px;align-items:start}
+.exhours{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:4px}
+.exgrid .cell{aspect-ratio:auto;min-height:40px}
+.exgrid .headbtn{min-height:40px}
+.exgrid .cell.on{background:var(--accent);color:var(--accent-ink);border:2px solid var(--accent)}
+.exgrid .cell.offh{background:transparent;border:2px dashed var(--line-strong);color:var(--muted);text-decoration:line-through}
+.cell.pref{box-shadow:inset 0 3px 0 var(--accent)}
+.cell .ev{position:absolute;top:4px;right:4px;display:flex;gap:2px}
+.cell .ev i{display:block;width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.cell .ev i.ad{background:var(--maybe);width:7px}
+.cell.picked .ev i{background:var(--accent-ink)}
+.cell .ring{position:absolute;top:3px;right:4px;width:8px;height:8px;border-radius:50%;border:2px solid var(--no);background:transparent}
+.dowbtn{font:inherit;font-size:.72rem;font-weight:700;color:var(--accent);background:transparent;border:1.5px solid var(--accent);border-radius:6px;cursor:pointer;min-height:34px;padding:0}
+.dowbtn:hover{background:var(--accent-soft)}
+.hint{display:flex;gap:8px;align-items:flex-start;font-size:.82rem;color:var(--ink);background:var(--tag);border-radius:8px;padding:8px 10px}
+.hint b{font-weight:600}
+.headbtn{font:inherit;font-size:.72rem;font-weight:700;color:var(--accent);background:transparent;border:1.5px solid var(--accent);border-radius:6px;cursor:pointer;min-height:34px;padding:2px}
+.toggled{background:var(--accent)!important;color:var(--accent-ink)!important}
+.tool{display:flex;gap:6px;flex-wrap:wrap}
+.tool button{font:inherit;font-weight:700;min-width:44px;min-height:40px;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.mdprev{background:var(--bg);border:1px dashed var(--line-strong);border-radius:8px;padding:10px 12px;font-size:.9rem;overflow-wrap:anywhere}
+.pedit{display:grid;grid-template-columns:minmax(0,1fr) 128px 44px;gap:6px;padding:8px 0;border-bottom:1px solid var(--line);align-items:center}
+.pedit>input[data-pf=name]{grid-column:1;grid-row:1}
+.pedit>select{grid-column:2;grid-row:1}
+.pedit>button{grid-column:3!important;grid-row:1!important}
+.pedit>input[data-pf=email]{grid-column:1/-1;grid-row:2}
+.pedit>span.full{grid-column:1/-1}
+@media (min-width:700px){.pedit{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) 140px 44px}.pedit>input[data-pf=email]{grid-column:2;grid-row:1}.pedit>select{grid-column:3}.pedit>button{grid-column:4!important}}
+.pedit.new{background:var(--yes-soft);border-radius:8px;padding-inline:8px}
+.pedit input,.pedit select{min-height:40px}
+.sugg{display:flex;flex-direction:column;gap:4px}
+.sugg button{font:inherit;text-align:left;min-height:44px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--ink);cursor:pointer}
+.sugg button:hover{background:var(--accent-soft)}
+.sugg small{color:var(--muted)}
+.callist{display:flex;flex-direction:column;gap:0}
+.evlist{display:flex;flex-direction:column;gap:4px;font-size:.82rem}
+.evlist .d{font-weight:600}
+.statusbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 </style>
-</head>
-<body>
-<p id="s">Úložiště: …</p>
-<p id="a">Apps Script API: načítám…</p>
+
+<div id="app"><p class="muted">Loading the planner…</p></div>
+<div id="adminwrap"></div>
+
 <script>
-var API = "https://script.google.com/macros/s/AKfycbx_pnR_TwG6n5GL1qJujl0IA0uD2OqVPyS-cbn5GCyNdr6vjud4X9A2BZejxtWcj6fE/exec";
-var s = document.getElementById("s"), a = document.getElementById("a"), n = 0;
-try {
-  n = +(localStorage.getItem("t") || 0) + 1;
-  localStorage.setItem("t", n);
-  s.textContent = "Úložiště funguje. Návštěva č. " + n + ". Obnov stránku – číslo má vzrůst.";
-  s.className = "ok";
-} catch (e) { s.textContent = "Úložiště NEFUNGUJE: " + e; s.className = "err"; }
-fetch(API + "?api=1&n=" + n)
-  .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-  .then(function (d) {
-    a.textContent = "Apps Script API funguje. Server vrátil čas " + d.serverTime + " a číslo návštěvy " + d.echo + ".";
-    a.className = "ok";
-  })
-  .catch(function (e) { a.textContent = "Apps Script API NEFUNGUJE: " + e; a.className = "err"; });
+(function(){
+"use strict";
+const KEY="team-meeting-planner-proto-v4";
+/* Verze B (issue #3, #7): with window.PLANNER_API set (web build), data live on the server, not in this browser. */
+const API=(typeof window!=="undefined"&&window.PLANNER_API)||"";const LIVE=!!API;const LKEY="team-meeting-planner-live-v1";
+let LS={tokens:{},admin:"",setup:null},LV={loading:true,err:"",msg:null,me:{},busy:false};
+const LPOLL=LIVE?(new URLSearchParams(location.search).get("p")||""):"";
+const pad=n=>String(n).padStart(2,"0");
+const D=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addDays=(s,n)=>{const d=D(s);d.setDate(d.getDate()+n);return iso(d)};
+const dowOf=s=>(D(s).getDay()+6)%7;
+const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DOWL=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const fmtDay=s=>{const d=D(s);return `${DOW[dowOf(s)]} ${d.getDate()} ${MON[d.getMonth()]}`};
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const LBL={y:"Yes",m:"If need be",n:"No"};
+const GLY={y:"✓",m:"~",n:"✕"};
+const NEXT={"":"y",y:"m",m:"n",n:""};
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const token=()=>Math.random().toString(36).slice(2,8);
+const TODAY=iso(new Date());
+const mins=t=>{const[a,b]=String(t||"0:0").split(":").map(Number);return (a||0)*60+(b||0)};
+const hm=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
+function boxStarts(a,b){const o=[];for(let m=a;m<b;m+=60)o.push(m);return o}
+function winOf(p){return p.win||(p.hours?[p.hours[0]*60,p.hours[1]*60]:[540,1020])}
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+function lev(a,b){a=norm(a);b=norm(b);const m=a.length,n=b.length;if(!m)return n;if(!n)return m;const d=[];for(let i=0;i<=m;i++){d[i]=[i];for(let j=1;j<=n;j++)d[i][j]=i?0:j}
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);
+    if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1)}return d[m][n]}
+const okMail=m=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m||"");
+
+/* Czech public holidays (shown to everyone) */
+const HOLCACHE={};
+function czHolidays(y){if(HOLCACHE[y])return HOLCACHE[y];
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const em=Math.floor((h+l-7*m+114)/31),ed=((h+l-7*m+114)%31)+1;const easter=`${y}-${pad(em)}-${pad(ed)}`;
+  const r={};[["01-01","New Year's Day · Restoration Day"],["05-01","Labour Day"],["05-08","Liberation Day"],["07-05","Saints Cyril and Methodius"],["07-06","Jan Hus Day"],["09-28","Statehood Day"],["10-28","Independence Day"],["11-17","Freedom and Democracy Day"],["12-24","Christmas Eve"],["12-25","Christmas Day"],["12-26","St Stephen's Day"]].forEach(([md,n])=>r[`${y}-${md}`]=n);
+  r[addDays(easter,-2)]="Good Friday";r[addDays(easter,1)]="Easter Monday";return HOLCACHE[y]=r;}
+const holName=s=>czHolidays(+s.slice(0,4))[s.slice(0,10)]||"";
+function dayClass(s,p){const w=dowOf(s);let c="";if(w>=5||holName(s))c+=" we";if(holName(s))c+=" hol";if(p&&p.highlight&&p.highlight.includes(w))c+=" pref";return c}
+function dayTitle(s){const h=holName(s);return h?` title="${esc(h)}"`:""}
+
+/* tiny formatting: **bold**, *italic*, [text](url), bare links, new lines */
+function md(src){let s=esc(src||"");
+  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*/g,"$1<i>$2</i>");
+  return s.replace(/\n/g,"<br>");}
+
+/* ---------- roles ---------- */
+const ROLES=[["host","Host"],["req","Must attend"],["key","Key person"],["reg","Regular"],["opt","Optional"]];
+const ROLE_LBL=Object.fromEntries(ROLES);const ROLE_ORDER={host:0,req:1,key:2,reg:3,opt:4};
+const isMust=r=>r==="host"||r==="req";
+const ROLE_HELP="Host and Must attend: a date only works if they can come. Key people count more when dates are ranked. Optional people can vote, but don't change the ranking.";
+
+/* ---------- demo data ---------- */
+const PEOPLE=[["martin","Martin"],["tomas","Tomáš"],["jana","Jana"],["petr","Petr"],["lucie","Lucie"],["ondrej","Ondřej"],["eva","Eva"],["klara","Klára"],["jakub","Jakub"],["anna","Anna"],["lukas","Lukas"],["sanne","Sanne"],["pavel","Pavel"],["tereza","Tereza"],["david","David"],["marketa","Markéta"],["filip","Filip"],["barbora","Barbora"],["michal","Michal"],["petra","Petra"]];
+const exMail=id=>id+"@example.com";
+function seed(){
+  const people={};PEOPLE.forEach(([id,n])=>people[id]={id,name:n,email:id==="martin"?"":exMail(id)});
+  const xmas={id:"xmas",status:"sent",title:"Christmas get-together",note:"Afternoon at **Tomáš's house** in the village: food, drinks, maybe a walk.\nMost of us stay overnight, so bring a sleeping bag.",map:"https://mapy.cz/",
+    example:true,mode:"day",from:"2026-11-27",to:"2026-12-20",highlight:[4,5],hours:null,days:null,
+    deadline:"2026-11-23",autoClose:true,closed:false,final:null,needsRunoff:false,flexRound:false,
+    invitees:PEOPLE.map(p=>p[0]),roles:{tomas:"host",jana:"key",petr:"key",lucie:"key",klara:"key",filip:"opt"},answers:{},submitted:{},dismissed:{},flex:{},tokens:{},parent:null,created:"2026-11-09"};
+  const r=rng(7);const slots=slotIds(xmas);
+  const responders=["martin","tomas","jana","petr","lucie","ondrej","eva","klara","jakub","anna","lukas","sanne","pavel"];
+  responders.forEach(pid=>{const a={};slots.forEach(s=>{const w=dowOf(s);let py=w===4||w===5?.55:w===6?.25:.08,pm=.25;const x=r();a[s]=x<py?"y":x<py+pm?"m":"n";});xmas.answers[pid]=a;xmas.submitted[pid]=true;});
+  responders.forEach(p=>{xmas.answers[p]["2026-12-12"]=p==="ondrej"?"n":(p==="eva"||p==="anna"?"m":"y");
+    xmas.answers[p]["2026-12-11"]=p==="tomas"?"n":"y";xmas.answers[p]["2026-12-05"]=p==="jana"?"n":(p==="sanne"?"m":"y");xmas.answers[p]["2026-12-13"]="n";});
+  xmas.invitees.forEach(p=>xmas.tokens[p]=token());
+  const call={id:"kickoff",status:"sent",example:true,title:"Q1 planning call",note:"60 min online call to plan Q1.",map:"",mode:"hour",from:"2026-12-14",to:"2026-12-18",highlight:[],win:[540,1020],days:[0,1,2,3,4],
+    deadline:"2026-11-20",autoClose:false,closed:false,final:null,needsRunoff:false,flexRound:false,
+    invitees:["martin","jana","petr","lukas","sanne","tereza"],roles:{jana:"req",lukas:"key"},answers:{},submitted:{},dismissed:{},flex:{},tokens:{},parent:null,created:"2026-11-09"};
+  const r2=rng(11);["martin","jana","lukas","sanne"].forEach(pid=>{const a={};slotIds(call).forEach(s=>{const h=parseInt(s.slice(11),10);const x=r2();a[s]=h<10||h>=16?(x<.5?"n":"m"):(x<.55?"y":x<.8?"m":"n")});call.answers[pid]=a;call.submitted[pid]=true});
+  call.invitees.forEach(p=>call.tokens[p]=token());
+  const contacts=PEOPLE.filter(x=>x[0]!=="martin").map(([id,n])=>({name:n,email:exMail(id),example:true}));
+  return {people,contacts,polls:{xmas,kickoff:call},order:["xmas","kickoff"],viewer:"martin",organizer:"martin",route:{v:"create"},adminOpen:false,setup:newSetup(),
+    booking:defaultBooking(),bookings:[],gcalShow:null};
+}
+let addSeq=1;
+function newSetup(){return{excl:{},from:"",editingId:null,title:"",note:"",map:"",mode:"day",h1:"09:00",h2:"17:00",month:TODAY.slice(0,7),dates:[],highlight:[],deadline:"",autoClose:true,people:[],err:"",q:"",typos:[],addMsg:""}}
+function setupFromPoll(p,editing){const ds=datesOf(p).filter(s=>editing||s>=TODAY);const first=(ds[0]||TODAY).slice(0,7);
+  return{...newSetup(),from:p.id,editingId:editing?p.id:null,org:p.org||"",title:p.title,note:p.note||"",map:p.map||"",mode:p.mode==="list"?"day":p.mode,
+    h1:p.mode==="hour"?hm(winOf(p)[0]):"09:00",h2:p.mode==="hour"?hm(winOf(p)[1]):"17:00",month:first<TODAY.slice(0,7)?TODAY.slice(0,7):first,dates:p.mode==="list"?[]:ds.slice(),
+    highlight:(p.highlight||[]).slice(),excl:{...(p.excl||{})},deadline:editing?p.deadline:"",autoClose:p.autoClose!==false,
+    people:p.invitees.filter(x=>x!==S.organizer).map(x=>({name:nameOf(x),email:(S.people[x]||{}).email||"",role:role(p,x),seq:0}))}}
+function defaultBooking(){return{title:"Call with Martin",duration:30,buffer:5,days:[0,1,2,3,4],from:"09:00",to:"17:00",start:"2026-11-10",end:"2026-11-21",
+  calendars:[{id:"work",name:"Work · hive42.cz",check:true},{id:"metro",name:"METRO project",check:true},{id:"personal",name:"Personal",check:false},{id:"family",name:"Family",check:false}],
+  saveTo:"work",removed:{},extra:[],created:false,token:token()}}
+function busyFor(cal,date){const w=dowOf(date);const d=+date.slice(8);const out=[];
+  if(cal==="work"){if(w<5)out.push(["09:00","09:30"]); if(w===1||w===3)out.push(["13:00","14:30"]); if(d%3===0)out.push(["15:00","16:00"]);}
+  if(cal==="metro"){if(w===4)out.push(["10:00","11:30"]); if(w===0)out.push(["14:00","15:00"]);}
+  if(cal==="personal"){if(w===2)out.push(["11:30","13:00"]);}
+  if(cal==="family"){if(w<5)out.push(["16:30","18:00"]);}
+  return out;}
+
+/* ---------- state ---------- */
+let S;
+function load(){if(LIVE){liveInit();return}try{const t=localStorage.getItem(KEY);if(t){S=JSON.parse(t);const d=seed();
+    S.setup={...newSetup(),...(S.setup||{})};["excl"].forEach(k=>{if(!S.setup[k]||typeof S.setup[k]!=="object")S.setup[k]={}});["dates","highlight","people","typos"].forEach(k=>{if(!Array.isArray(S.setup[k]))S.setup[k]=[]});
+    ["people","contacts","polls","order","booking","bookings"].forEach(k=>{if(S[k]==null)S[k]=d[k]});if(!S.route)S.route={v:"create"};
+    if(!S.organizer)S.organizer=d.organizer;if(S.viewer!==S.organizer&&S.viewer!=="guest")S.viewer=S.organizer;return}}catch(e){} S=seed();}
+function save(){if(LIVE){LS.setup=S.setup;lsSave();return}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+load();
+let draft=null, selCell=null, openRank={}, toastTimer=null, bookState={sel:null,done:null}, fills={}, sendOpen=false, flashNames=new Set();
+/* Q28: the organiser's poll page has three tabs; a preview is never saved and never survives a reload */
+let orgTab="results", previewAs=null, stash=null;
+function previewing(){return S.viewer===S.organizer&&S.route.v==="poll"&&orgTab==="preview"&&!!previewAs}
+function me(){return previewing()?previewAs:S.viewer}
+function resetTabs(){if(stash){draft=stash.draft;fills=stash.fills}stash=null;previewAs=null;orgTab="results"}
+
+/* ---------- poll logic ---------- */
+function datesOf(p){if(p.dates)return p.dates.slice().sort();const out=[];for(let s=p.from;s<=p.to;s=addDays(s,1))out.push(s);return out}
+function slotIds(p){if(p.mode==="list")return p.slots.map(x=>x.id);
+  const ds=datesOf(p);if(p.mode==="day")return ds;
+  const w=winOf(p);const out=[];ds.forEach(d=>{if(p.days&&!p.days.includes(dowOf(d)))return;boxStarts(w[0],w[1]).forEach(m=>{const id=`${d}T${hm(m)}`;if(!(p.excl&&p.excl[id]))out.push(id)})});return out}
+function slotLabel(p,id){if(id.length===10)return fmtDay(id);const st=mins(id.slice(11));return `${fmtDay(id.slice(0,10))}, ${hm(st)}–${hm(Math.min(st+60,winOf(p)[1]))}`}
+function role(p,pid){return p.roles[pid]||"reg"}
+function responded(p){return p.invitees.filter(x=>p.submitted[x])}
+function counted(p){return p.invitees.filter(x=>role(p,x)!=="opt")}
+/* the group view includes the viewer's unsaved answers, so changes show up at once */
+function liveCtx(p){const v=me();if(draft&&draft.pollId===p.id&&draft.pid===v&&p.invitees.includes(v)&&(p.submitted[v]||Object.keys(draft.answers).length)){
+    return{answers:{...p.answers,[v]:draft.answers},submitted:{...p.submitted,[v]:true}}}return{answers:p.answers,submitted:p.submitted}}
+function stat(p,sid,c){c=c||{answers:p.answers,submitted:p.submitted};const r={y:[],m:[],n:[],u:[]};
+  p.invitees.forEach(pid=>{if(!c.submitted[pid]){r.u.push(pid);return}const a=(c.answers[pid]||{})[sid];
+    if(a==="y")r.y.push(pid);else if(a==="m")r.m.push(pid);else if(a==="n")r.n.push(pid);else r.u.push(pid);});
+  const must=p.invitees.filter(x=>isMust(role(p,x))),key=p.invitees.filter(x=>role(p,x)==="key");
+  const ok=x=>r.y.includes(x)||r.m.includes(x);const cnt=x=>role(p,x)!=="opt";
+  r.reqOk=must.every(ok);r.reqNo=must.filter(x=>r.n.includes(x));r.reqUnknown=must.filter(x=>r.u.includes(x));r.reqMissing=must.filter(x=>!ok(x));
+  r.keyOk=key.filter(ok).length;r.keyAll=key.length;r.total=r.y.filter(cnt).length+r.m.filter(cnt).length;r.optOk=r.y.concat(r.m).filter(x=>!cnt(x)).length;
+  return r;}
+function ranking(p,c){return slotIds(p).map(id=>({id,...stat(p,id,c)})).sort((a,b)=>(b.reqOk-a.reqOk)||(b.keyOk-a.keyOk)||(b.total-a.total)||(b.y.length-a.y.length)||(a.id<b.id?-1:1))}
+function estimate(p,s){const resp=responded(p).filter(x=>role(p,x)!=="opt").length||1;const rate=s.total/resp;const un=counted(p).filter(x=>!p.submitted[x]).length;return Math.round(s.y.filter(x=>role(p,x)!=="opt").length+.6*s.m.filter(x=>role(p,x)!=="opt").length+.4*un*rate)}
+function nudges(p,pid){
+  if(!p.submitted[pid]||p.closed)return[];
+  const ratio=responded(p).length/p.invitees.length;if(ratio<.5&&!p.flexRound)return[];
+  const mine=p.answers[pid]||{};const before=ranking(p);const topBefore=before[0]&&before[0].id;const out=[];
+  Object.keys(mine).forEach(sid=>{if(mine[sid]!=="n")return;if((p.dismissed[pid]||{})[sid])return;
+    const s0=stat(p,sid);const alt=JSON.parse(JSON.stringify(p.answers));alt[pid][sid]="m";const c1={answers:alt,submitted:p.submitted};const s1=stat(p,sid,c1);
+    const others=responded(p).filter(x=>x!==pid);const only=others.length>0&&others.every(x=>s0.y.includes(x)||s0.m.includes(x));
+    const unlock=!s0.reqOk&&s1.reqOk;const r1=ranking(p,c1);const top=r1[0].id===sid&&topBefore!==sid;
+    if(only||unlock||top)out.push({sid,only,unlock,top,after:s1.total,score:(top?4:0)+(unlock?2:0)+(only?1:0)});});
+  return out.sort((a,b)=>b.score-a.score||b.after-a.after);}
+
+/* ---------- Google connectors (organiser only, inside claude.ai) ---------- */
+let MCP=null;const GC={state:"idle",cals:[],events:{},loading:{},err:""};const GM={state:"idle",q:"",results:[],err:""};
+try{if(window.claude&&window.claude.use)window.claude.use("mcp").then(m=>{MCP=m;if(S.route.v==="create")render()}).catch(()=>{})}catch(e){}
+function mcpMsg(e,server){const c=e&&e.code;
+  if(c==="server_not_connected"||c==="selection_required")return `${server} isn't connected. Add it in claude.ai Settings → Connectors, then try again.`;
+  if(c==="needs_reauth")return `${server} needs reconnecting in claude.ai Settings → Connectors.`;
+  if(c==="not_in_manifest"||c==="approval_required"||c==="consent_required")return `This page needs your OK to read ${server}. Tap the button again and allow it.`;
+  if(c==="blocked_by_policy")return `Your organisation doesn't allow this page to use ${server}.`;
+  return `Couldn't reach ${server} just now${c?` (${c})`:""}. Try again in a moment.`;}
+async function callRead(server,tool,input){try{return(await MCP.callTool(server,tool,input,{cache:{staleTime:300000,gcTime:900000}})).payload}
+  catch(e){if(e&&e.retryable){await new Promise(r=>setTimeout(r,(e.retryAfterMs||800)+Math.random()*400));return(await MCP.callTool(server,tool,input)).payload}throw e}}
+async function gcalConnect(){if(!MCP)return;GC.state="loading";GC.err="";render();
+  try{const pl=await callRead("Google Calendar","list_calendars",{pageSize:100});GC.cals=(pl&&pl.calendars||[]).map(c=>({id:c.id,name:c.summary||c.id,holiday:/holiday@group\.v\.calendar/.test(c.id)}));
+    if(!S.gcalShow){S.gcalShow={};GC.cals.forEach(c=>{S.gcalShow[c.id]=!c.holiday&&!/@group\.calendar\.google\.com$/.test(c.id)});save()}
+    GC.state="ready";render();gcalLoadMonth(S.setup.month);}
+  catch(e){GC.state="error";GC.err=mcpMsg(e,"Google Calendar");render()}}
+async function gcalLoadMonth(month){if(GC.state!=="ready")return;const[y,m]=month.split("-").map(Number);const end=iso(new Date(y,m,1));
+  const ids=GC.cals.filter(c=>S.gcalShow[c.id]).map(c=>c.id);
+  for(const id of ids){const k=month+"|"+id;if(GC.events[k]||GC.loading[k])continue;GC.loading[k]=true;
+    try{let list=[],tok;for(let i=0;i<3;i++){const pl=await callRead("Google Calendar","list_events",{calendarId:id,startTime:`${month}-01T00:00:00`,endTime:`${end}T00:00:00`,pageSize:250,orderBy:"startTime",...(tok?{pageToken:tok}:{})});
+        list=list.concat((pl&&pl.events)||[]);tok=pl&&pl.nextPageToken;if(!tok)break}
+      GC.events[k]=list.filter(e=>e.status!=="cancelled").map(e=>({title:e.summary||"Busy",allDay:!!(e.start&&e.start.date),start:(e.start&&(e.start.dateTime||e.start.date))||"",end:(e.end&&(e.end.dateTime||e.end.date))||""}));}
+    catch(e){GC.err=mcpMsg(e,"Google Calendar")}GC.loading[k]=false;render();}}
+function gcalDay(s){if(GC.state!=="ready")return[];const out=[];GC.cals.forEach(c=>{if(!S.gcalShow[c.id])return;(GC.events[s.slice(0,7)+"|"+c.id]||[]).forEach(e=>{
+    if(e.allDay){if(e.start<=s&&s<e.end)out.push({...e,cal:c.name})}else if(e.start.slice(0,10)===s)out.push({...e,cal:c.name})})});
+  return out.sort((a,b)=>(b.allDay-a.allDay)||(a.start<b.start?-1:1));}
+async function gmailSearch(q){if(!MCP||!q)return;GM.state="loading";GM.q=q;GM.err="";render();
+  try{const pl=await callRead("Gmail","search_threads",{query:`{from:"${q.replace(/"/g,"")}" to:"${q.replace(/"/g,"")}" cc:"${q.replace(/"/g,"")}"}`,pageSize:30,view:"THREAD_VIEW_METADATA_ONLY"});
+    const seen={};(pl&&pl.threads||[]).forEach(t=>(t.messages||[]).forEach(m=>(m.addressDisplayNames||[]).forEach(a=>{const em=(a.emailAddress||"").toLowerCase();if(!em||seen[em])return;
+      const nm=a.displayName||"";if(norm(nm).includes(norm(q))||norm(em).includes(norm(q)))seen[em]={name:nm||em.split("@")[0],email:em}})));
+    GM.results=Object.values(seen).slice(0,8);GM.state="ready";}
+  catch(e){GM.state="error";GM.err=mcpMsg(e,"Gmail")}render();}
+
+/* ---------- rendering helpers ---------- */
+const $app=document.getElementById("app");
+function nameOf(pid){return (S.people[pid]||{name:pid}).name}
+function roleTag(p,pid){const r=role(p,pid);if(r==="reg")return "";if(!viewerIsOrg()&&r!=="host")return "";return `<span class="tag">${ROLE_LBL[r]}</span>`}
+function hostTag(p,s){const hs=p.invitees.filter(x=>role(p,x)==="host");if(!hs.length)return "";const nm=hs.map(nameOf).join(", ");
+  if(hs.every(x=>s.y.includes(x)||s.m.includes(x)))return `<span class="tag">${esc(nm)} (host) can</span>`;if(hs.some(x=>s.n.includes(x)))return `<span class="tag">${esc(nm)} (host) can't</span>`;return `<span class="tag">${esc(nm)} (host) hasn't answered</span>`}
+function clapTag(p,pid){const n=p.flex[pid]||0;return n?`<span class="tag" title="Made room in ${n} places">👏 ${n}</span>`:""}
+function viewerIsOrg(){return me()===S.organizer}
+function curPoll(){return S.route.v==="poll"?S.polls[S.route.id]:null}
+function sortedInvitees(p){return p.invitees.slice().sort((a,b)=>(a===S.organizer?-1:b===S.organizer?1:0)||ROLE_ORDER[role(p,a)]-ROLE_ORDER[role(p,b)])}
+
+function render(){try{renderInner()}catch(err){try{console.error(err)}catch(x){}
+  $app.innerHTML=`<div class="banner warn" role="alert"><b>Something went wrong on this page.</b><p class="small">${esc(err&&err.message||err)}</p><p class="small">Your saved example data may be from an older version. Resetting it usually fixes this.</p><div><button class="btn small primary" data-act="reset">Reset example data</button></div></div>`;try{renderAdmin()}catch(x){}}}
+function renderInner(){
+  if(LIVE&&liveScreen())return;
+  const v=S.viewer;let html="";
+  if(v==="guest"){html=`<div class="previewbar" style="margin-bottom:16px"><span>Viewing your booking link as a guest. Bookings made here are kept as example data.</span><button class="btn small" data-act="guest-back">Back to managing</button></div>`+renderGuest()}
+  else{
+    html+=`<header class="top"><div class="brand">Team Meeting Planner${LIVE?"":"<small>prototype · example data</small>"}</div>`;
+    if(S.route.v!=="poll"&&(orgTab!=="results"||previewAs))resetTabs();
+    if(v===S.organizer){
+      html+=`<nav class="nav" aria-label="Main">
+        <button class="navbtn" data-act="go-create" ${S.route.v==="create"?'aria-current="page"':""}>New poll</button>
+        <button class="navbtn" data-act="go-list" ${S.route.v==="list"||S.route.v==="poll"?'aria-current="page"':""}>Polls</button>
+        ${LIVE?"":`<button class="navbtn" data-act="go-booking" ${S.route.v==="booking"?'aria-current="page"':""}>Book with me</button>`}</nav>`;
+    }else{html+=LIVE?`<span class="tag">You: ${esc(nameOf(v))}</span>`:`<span class="tag">Opened from ${esc(nameOf(v))}'s personal link</span>`}
+    html+=`</header>`;
+    if(v!==S.organizer&&(S.route.v!=="poll"||!curPoll()||!curPoll().invitees.includes(v))){S.route={v:"poll",id:S.order.find(id=>S.polls[id].invitees.includes(v))||"xmas"}}
+    if(S.route.v==="list")html+=renderList();
+    else if(S.route.v==="create")html+=renderCreate();
+    else if(S.route.v==="booking")html+=renderBookingSetup();
+    else html+=renderPoll(curPoll());
+  }
+  if(LIVE)html+=liveFooter();
+  $app.innerHTML=html;
+  renderAdmin();renderSaveBar();
+  if(flashNames.size){const f=[...flashNames];setTimeout(()=>{f.forEach(n=>flashNames.delete(n))},2500)}
+}
+
+function renderList(){
+  let h=`<div class="stack"><div class="between"><h1>Polls</h1><button class="btn primary" data-act="go-create">New poll</button></div>`;
+  S.order.forEach(id=>{const p=S.polls[id];const r=responded(p).length;const top=r?ranking(p)[0]:null;
+    h+=`<div class="card"><div class="between"><div class="stack" style="gap:4px"><h2>${esc(p.title)}</h2><div class="row">${p.status==="draft"?`<span class="tag">Draft · not sent</span>`:""}${p.example?`<span class="tag">Example data</span>`:""}</div><p class="muted small">${p.mode==="day"?"Whole days":p.mode==="hour"?"Hour by hour":"Run-off"} · ${r} of ${p.invitees.length} answered · ${p.closed?"Closed":"Closes "+fmtDay(p.deadline)}</p></div>
+      <div class="row"><button class="btn small" data-act="dup" data-id="${id}">Use as template</button><button class="btn small primary" data-act="open-poll" data-id="${id}">Open</button></div></div>
+      ${p.closed&&p.final?`<p><span class="tag">Final</span> ${esc(slotLabel(p,p.final))}</p>`:top?`<p class="small">Leading: <b>${esc(slotLabel(p,top.id))}</b> · ${top.total} can come</p>`:""}</div>`;});
+  return h+`</div>`;
+}
+
+function renderPoll(p){
+  if(!p)return `<p>Poll not found.</p>`;
+  if(S.viewer!==S.organizer)return `<div class="stack">${renderVoter(p)}</div>`;
+  const tab=(v,l)=>`<button type="button" data-act="tab" data-v="${v}" aria-pressed="${orgTab===v}">${l}</button>`;
+  let h=`<div class="stack"><div><button class="linkbtn" data-act="go-list">← All polls</button></div>`;
+  if(orgTab==="results")h+=renderOrgBar(p);
+  h+=`<div class="tabbar"><div class="seg" role="group" aria-label="What you see">${tab("results","Results")}${tab("mine","My vote")}${tab("preview","Preview as…")}</div></div>`;
+  if(orgTab==="results"){
+    h+=pollInfo(p,false);
+    if(p.closed&&p.final)h+=finalBanner(p);
+    h+=renderGroupCalendar(p)+renderRanking(p)+renderPeople(p)+renderOrgTools(p);
+  }else if(orgTab==="mine"&&LIVE&&!p.invitees.includes(S.organizer)){
+    h+=`<div class="banner info"><b>To vote yourself, join like everyone else.</b><p class="small">Use your own name and e-mail. Your answers then count the same as anyone's.</p></div>`+(p.closed?"":renderJoin(p));
+  }else if(orgTab==="mine"){
+    h+=`<div class="banner info"><b>Voting as ${esc(nameOf(S.organizer))}, like everyone else.</b><p class="small">Your answers count the same as anyone's. Organiser actions are under Results.</p><div><button class="btn small" data-act="tab" data-v="results">Back to managing</button></div></div>`;
+    h+=renderVoter(p);
+  }else if(!previewAs){
+    h+=`<section class="card" aria-labelledby="pv-h"><h2 id="pv-h">Preview as…</h2><p class="small muted">See “${esc(p.title)}” exactly as this person sees it. Nothing you tap in the preview is saved.</p><div class="people">`;
+    sortedInvitees(p).filter(x=>x!==S.organizer).forEach(x=>{const tags=[role(p,x)!=="reg"?ROLE_LBL[role(p,x)]:"",p.submitted[x]?"":"No answer yet",nudges(p,x).length?"Has a nudge waiting":""].filter(Boolean);
+      h+=`<div class="prow" style="flex-wrap:nowrap"><span style="min-width:0">${esc(nameOf(x))} ${tags.map(t=>`<span class="tag">${t}</span>`).join(" ")}</span><button class="btn small" style="flex-shrink:0" data-act="preview-as" data-v="${x}" aria-label="Preview as ${esc(nameOf(x))}">Preview</button></div>`});
+    h+=`</div></section>`;
+  }else{
+    h+=`<div class="previewbar" role="status"><span>Previewing as <b>${esc(nameOf(previewAs))}</b>. Nothing you tap here is saved.</span><span class="row"><button class="btn small" data-act="tab" data-v="preview">Other person</button><button class="btn small" data-act="tab" data-v="results">Back to managing</button></span></div>`;
+    h+=renderVoter(p);
+  }
+  return h+`</div>`;
+}
+function renderOrgBar(p){
+  const st=p.closed?"Voting closed":p.status==="draft"?"Draft · not sent":(LIVE?"Open · closes ":"Sent · closes ")+fmtDay(p.deadline);
+  return `<section class="card" id="org-bar" aria-label="Manage this poll"><div class="between"><h1>${esc(p.title)}</h1><span class="tag">${st}</span></div>
+    ${p.status==="draft"?`<p class="small">Nothing has been sent yet. Check it, use “Preview as…” to see what an invitee sees, then send the invitations.</p>`:""}
+    <div class="row"><button class="btn small" data-act="edit-setup">Edit poll</button>${p.status==="draft"?`<button class="btn small primary" data-act="send-open" aria-expanded="${sendOpen}">Send invitations…</button>`:""}${p.closed?`<button class="btn small" data-act="reopen">Reopen voting</button>`:`<button class="btn small" data-act="go-decide">Close voting…</button>`}</div>
+    ${sendOpen&&p.status==="draft"?renderSendPanel(p):""}${LIVE?liveShareBox(p):""}</section>`;
+}
+function pollInfo(p,withTitle){const resp=responded(p).length;
+  return `<div class="stack" style="gap:8px">${withTitle?`<span class="eyebrow">${p.mode==="list"?"Round 2 · run-off":"Find a date"} · organised by ${esc(nameOf(S.organizer))}</span>
+    <h1>${esc(p.title)}</h1>`:""}${p.note?`<div>${md(p.note)}</div>`:""}${p.map?`<p><a href="${esc(p.map)}" target="_blank" rel="noopener">Open the place on a map</a></p>`:""}
+    <div class="row small"><span class="tag">${resp} of ${p.invitees.length} answered</span><span class="tag">${p.closed?"Voting closed":"Voting closes "+fmtDay(p.deadline)}</span><span class="tag">Prague time (CET)</span></div></div>`;}
+function finalBanner(p){const s=stat(p,p.final);
+  return `<div class="banner win"><b>It's decided: ${esc(slotLabel(p,p.final))}</b><p class="small">${s.y.length} yes, ${s.m.length} if need be.</p>
+      <div><a href="${gcalLink(p)}" target="_blank" rel="noopener">Add to Google Calendar</a></div></div>`;}
+/* what an invitee sees; the organiser gets it under “My vote”, and read-only under “Preview as…” */
+function renderVoter(p){
+  const v=me(), invited=p.invitees.includes(v), org=viewerIsOrg(), ro=previewing()?" disabled":"";
+  if(!draft||draft.pollId!==p.id||draft.pid!==v){draft={pollId:p.id,pid:v,answers:JSON.parse(JSON.stringify(p.answers[v]||{}))};fills={}}
+  let h="";
+  if(p.status==="draft"&&!org)h+=`<div class="banner warn"><b>Preview</b><p class="small">This poll hasn't been sent yet. ${esc(nameOf(S.organizer))} is checking it.</p></div>`;
+  h+=pollInfo(p,true);
+  if(p.closed&&p.final)h+=finalBanner(p);
+  if(p.mode==="list"&&invited&&!p.submitted[v])h+=`<div class="banner info"><b>Round 2: only ${p.slots.length} options left.</b><p class="small">Your answers from round 1 are filled in. Check them and save, even if nothing changed.</p></div>`;
+  if(p.flexRound&&!p.closed&&invited&&!org)h+=`<div class="banner info"><b>${esc(nameOf(S.organizer))} is asking for a bit of flexibility.</b><p class="small">Below are the dates where your answer decides the most.</p></div>`;
+  if(invited&&!p.closed){const ns=nudges(p,v);
+    if(ns.length){h+=`<div class="card" style="border:2px solid var(--accent)"><span class="eyebrow">Your answer can make the difference</span>`;
+      ns.forEach(n=>{const why=n.top?`It would become the best option for the group.`:n.unlock?`Everyone who must attend could then come.`:`You're the only "No" among everyone who answered.`;
+        h+=`<div class="ritem"><div class="rhead"><span class="rname">${esc(slotLabel(p,n.sid))}</span><span class="tag">${n.after} could come</span></div>
+          <p class="small">${why} Could it work for you after all?</p>
+          <div class="row"><button class="btn small primary" data-act="flex" data-sid="${n.sid}"${ro}>I can make it work</button><button class="btn small" data-act="dismiss" data-sid="${n.sid}"${ro}>I really can't</button></div></div>`;});
+      h+=`</div>`;}}
+  if(invited&&!p.closed)h+=renderEditor(p);
+  h+=renderGroupCalendar(p);
+  h+=renderRanking(p);
+  h+=renderPeople(p);
+  return h;
+}
+function renderSendPanel(p){const list=sortedInvitees(p).filter(x=>x!==S.organizer);const noMail=list.filter(x=>!okMail((S.people[x]||{}).email));
+  return `<div class="card" style="gap:8px"><h3>Send to ${list.length} people</h3>
+    ${noMail.length?`<p class="small" style="color:var(--no)">No e-mail for ${noMail.map(x=>esc(nameOf(x))).join(", ")}. They won't get an e-mail; copy their personal link from “Organiser tools” and send it yourself, or add the address in “Edit setup”.</p>`:""}
+    <div class="people">${list.map(x=>`<div class="prow"><span>${esc(nameOf(x))} ${roleTag(p,x)}</span><span class="small muted">${esc((S.people[x]||{}).email||"no e-mail")}</span></div>`).join("")}</div>
+    <p class="small muted">Each person gets an e-mail with their own link. In this prototype nothing is actually e-mailed.</p>
+    <div class="row"><button class="btn small" data-act="send-open">Not yet</button><button class="btn small primary" data-act="send">Send ${list.length-noMail.length} e-mails now</button></div></div>`}
+
+function renderEditor(p){
+  let h=`<section class="card" aria-labelledby="mine-h"><div class="between"><h2 id="mine-h">Your answers</h2>${p.submitted[me()]?`<span class="tag">Saved</span>`:`<span class="tag">Not saved yet</span>`}</div>`;
+  if(p.mode==="list"){h+=`<p class="small muted">Pick one answer for each option.</p>`}
+  else{h+=`<div class="hint"><span><b>Tap a ${p.mode==="day"?"date":"box"}</b> to switch: empty → ✓ Yes → ~ If need be → ✕ No → empty. <b>Drag</b> to give more ${p.mode==="day"?"dates":"boxes"} the same answer. <b>Tap a ${p.mode==="day"?"weekday name":"day or hour heading"}</b> to set the whole ${p.mode==="day"?"column":"row or column"} at once.</span></div>`;
+    const hl=p.highlight&&p.highlight.length?p.highlight.map(i=>DOW[i]).join(" & "):null;
+    const fb=(k,label,undo)=>`<button class="btn small${fills[k]?" toggled":""}" data-act="fill" data-k="${k}" aria-pressed="${!!fills[k]}">${fills[k]?undo:label}</button>`;
+    h+=`<div class="row">${hl&&p.mode==="day"?fb("hl",`Mark all ${hl} as Yes`,`Undo: all ${hl} as Yes`):""}${fb("empty",`Mark everything still empty as No`,`Undo: empty marked as No`)}</div>`;}
+  h+=renderGrid(p,"mine");
+  h+=legend(p);
+  return h+`</section>`;
+}
+function legend(p){return `<div class="legend"><span><i class="sw" style="background:var(--yes-soft);border:2px solid var(--yes)"></i>Yes</span><span><i class="sw" style="background:var(--maybe-soft);border:2px dashed var(--maybe)"></i>If need be</span><span><i class="sw" style="background:var(--no-soft);border:2px solid var(--no)"></i>No</span>
+  <span><i class="sw" style="background:var(--we);border:1px solid var(--line)"></i>Weekend</span><span><i class="sw" style="border-bottom:3px solid var(--no)"></i>Public holiday</span>${p&&p.highlight&&p.highlight.length?`<span><i class="sw" style="box-shadow:inset 0 3px 0 var(--accent);border:1px solid var(--line)"></i>Preferred by ${esc(nameOf(S.organizer))}</span>`:""}</div>`}
+
+function cellHTML(p,sid,label,mode,c,best){
+  const ds=sid.slice(0,10);const cls=sid.length===10?dayClass(ds,p):"";const ttl=sid.length===10?dayTitle(ds):"";
+  if(mode==="mine"){const a=draft.answers[sid]||"";
+    return `<button class="cell${cls}" data-cell="${sid}" data-a="${a}"${ttl} aria-label="${esc(slotLabel(p,sid))}${holName(ds)?", "+esc(holName(ds)):""}: ${a?LBL[a]:"no answer"}"><span class="dn">${label}</span><span class="mk">${a?GLY[a]:""}</span></button>`;}
+  const s=stat(p,sid,c);const r=counted(p).filter(x=>c.submitted[x]).length||1;const alpha=Math.min(1,s.total/r)*.75;const dark=alpha>.45;
+  return `<button class="cell heat${cls}${selCell===sid?" sel":""}" data-pick="${sid}"${ttl} style="background:rgba(var(--heat),${alpha.toFixed(2)});${dark?"color:var(--accent-ink)":""}" aria-label="${esc(slotLabel(p,sid))}: ${s.total} can come${s.reqNo.length?", "+s.reqNo.map(nameOf).join(", ")+" can't":""}">
+    ${best===sid?`<span class="star" style="${dark?"color:var(--accent-ink)":""}">★</span>`:""}${(()=>{const f=x=>viewerIsOrg()||role(p,x)==="host";const no=s.reqNo.filter(f),un=s.reqUnknown.filter(f);return no.length?`<span class="dot"></span>`:un.length?`<span class="ring"></span>`:""})()}<span class="small dn">${label}</span><span class="cnt">${s.total}</span></button>`;}
+
+function renderGrid(p,mode){
+  const c=mode==="mine"?null:liveCtx(p);const best=mode==="mine"?null:(responded(p).length||c.submitted[me()]?ranking(p,c)[0].id:null);
+  if(p.mode==="list"){if(mode!=="mine")return "";return `<div class="stack" style="gap:8px">${p.slots.map(x=>{const a=draft.answers[x.id]||"";
+    return `<div class="ritem"><div class="rhead"><span class="rname">${esc(slotLabel(p,x.id))}</span></div><div class="row">${["y","m","n"].map(k=>`<button class="btn small${a===k?" primary":""}" data-act="set-one" data-sid="${x.id}" data-v="${k}" aria-pressed="${a===k}">${GLY[k]} ${LBL[k]}</button>`).join("")}</div></div>`}).join("")}</div>`}
+  if(p.mode==="day"){
+    const ds=datesOf(p);if(!ds.length)return "";const cand=new Set(ds);let h="";let cur=null;let grid="";
+    const head=m=>DOW.map((d,i)=>mode==="mine"?`<button type="button" class="headbtn" data-act="vote-dow" data-v="${i}" data-m="${m}" aria-label="Switch every ${DOWL[i]} in ${MONL[+m.slice(5)-1]}">${d}</button>`:`<div class="dow">${d}</div>`).join("");
+    const flush=()=>{if(cur!==null)h+=`<div class="cal" data-grid="${mode}">${head(cur)}${grid}</div>`};
+    const startM=ds[0].slice(0,7)+"-01";const endD=D(ds[ds.length-1]);const last=iso(new Date(endD.getFullYear(),endD.getMonth()+1,0));
+    for(let s=startM;s<=last;s=addDays(s,1)){const m=s.slice(0,7);if(m!==cur){flush();cur=m;grid="";h+=`<div class="month">${MONL[+s.slice(5,7)-1]} ${s.slice(0,4)}</div>`;for(let i=0;i<dowOf(s);i++)grid+=`<div class="cell off"></div>`}
+      grid+=cand.has(s)?cellHTML(p,s,String(+s.slice(8)),mode,c,best):`<div class="cell na${dayClass(s)}" aria-hidden="true"${dayTitle(s)}><span class="dn">${+s.slice(8)}</span></div>`;}
+    flush();return h;}
+  const ds=datesOf(p).filter(d=>!p.days||p.days.includes(dowOf(d)));const w=winOf(p);const hs=boxStarts(w[0],w[1]);
+  let h=`<div class="hgrid" data-grid="${mode}"><div class="exrow"><div></div><div class="exhours">${hs.map(x=>mode==="mine"?`<button type="button" class="headbtn" data-act="vote-col" data-h="${hm(x)}" aria-label="Switch ${hm(x)} on every day">${hm(x)}</button>`:`<div class="hhead">${hm(x)}</div>`).join("")}</div></div>`;
+  ds.forEach(d=>{const lab=`${DOW[dowOf(d)]} ${+d.slice(8)} ${MON[+d.slice(5,7)-1]}${holName(d)?" · holiday":""}`;
+    h+=`<div class="exrow">`+(mode==="mine"?`<button type="button" class="headbtn" data-act="vote-row" data-d="${d}" aria-label="Switch every hour on ${fmtDay(d)}"${dayTitle(d)}>${lab}</button>`:`<div class="hlabel"${dayTitle(d)}>${lab}</div>`)+`<div class="exhours">`;
+    hs.forEach(x=>{const id=`${d}T${hm(x)}`;h+=p.excl&&p.excl[id]?`<div class="cell na" aria-hidden="true"></div>`:cellHTML(p,id,"",mode,c,best)});h+=`</div></div>`});
+  return h+`</div>`;
+}
+
+function renderGroupCalendar(p){
+  if(p.mode==="list")return "";const c=liveCtx(p);const mineLive=c!==undefined&&c.answers!==p.answers&&JSON.stringify(sortObj(draft.answers))!==JSON.stringify(sortObj(p.answers[me()]||{}));
+  let h=`<section class="card" aria-labelledby="grp-h"><div class="between"><h2 id="grp-h">How everyone voted</h2><span class="small muted">Number = people who can come · darker = more</span></div>
+    ${mineLive?`<p class="small muted">Includes your unsaved changes.</p>`:""}
+    <div class="legend"><span>★ best option so far</span>${(()=>{const hosts=p.invitees.filter(x=>role(p,x)==="host").map(nameOf).join(", ");if(!hosts&&!viewerIsOrg())return "";const who=!hosts?"A must-attend person":viewerIsOrg()?`${esc(hosts)} (host) or a must-attend person`:`${esc(hosts)} (host)`;
+  return `<span><i class="sw" style="background:var(--no);border-radius:50%;width:9px;height:9px"></i>${who} can't</span><span><i class="sw" style="border:2px solid var(--no);border-radius:50%;width:10px;height:10px"></i>${who} hasn't answered yet</span>`})()}</div>`;
+  h+=renderGrid(p,"group");
+  if(selCell){h+=whoBlock(p,selCell,c)}else h+=`<p class="small muted">Tap a ${p.mode==="day"?"date":"box"} to see who can come.</p>`;
+  return h+`</section>`;
+}
+function whoBlock(p,sid,c){const s=stat(p,sid,c);
+  const org=viewerIsOrg();const list=(arr)=>arr.length?arr.map(x=>{const r=role(p,x);return `${esc(nameOf(x))}${r==="host"||(org&&r!=="reg")?` (${ROLE_LBL[r].toLowerCase()})`:""}`}).join(", "):"nobody";
+  return `<div class="who" aria-live="polite"><b>${esc(slotLabel(p,sid))}${holName(sid.slice(0,10))?` · ${esc(holName(sid.slice(0,10)))}`:""}</b>
+    <span><span style="color:var(--yes);font-weight:700">✓ Yes (${s.y.length}):</span> ${list(s.y)}</span>
+    <span><span style="color:var(--maybe);font-weight:700">~ If need be (${s.m.length}):</span> ${list(s.m)}</span>
+    <span><span style="color:var(--no);font-weight:700">✕ No (${s.n.length}):</span> ${list(s.n)}</span>
+    <span class="muted">No answer yet (${s.u.length}): ${list(s.u)}</span></div>`;}
+
+function renderRanking(p){
+  const c=liveCtx(p);
+  if(!counted(p).some(x=>c.submitted[x]))return `<section class="card"><h2>Best options so far</h2><p class="muted">The ranking appears as soon as the first person answers.</p></section>`;
+  const r=ranking(p,c).slice(0,p.mode==="list"?p.slots.length:5);const n=counted(p).length;
+  let h=`<section class="card" aria-labelledby="rk-h"><div class="between"><h2 id="rk-h">Best options so far</h2><span class="small muted">${viewerIsOrg()?"Host and must-attend first, then key people, then everyone":"Dates the host can make come first"}</span></div><div class="rank">`;
+  r.forEach((s,i)=>{const open=!!openRank[s.id];const yc=s.y.filter(x=>role(p,x)!=="opt").length,mc=s.m.filter(x=>role(p,x)!=="opt").length,nc=s.n.filter(x=>role(p,x)!=="opt").length;
+    h+=`<div class="ritem${i===0?" top":""}${open?" open":""}"><div class="rhead"><span class="rname">${i+1}. ${esc(slotLabel(p,s.id))}</span>
+      <button class="btn small" data-act="toggle-rank" data-sid="${s.id}" aria-expanded="${open}">${open?"Hide":"Who"} <span class="chevron" aria-hidden="true">▾</span></button></div>
+      <div class="bar" aria-hidden="true"><i style="width:${yc/n*100}%;background:var(--yes)"></i><i style="width:${mc/n*100}%;background:var(--maybe)"></i><i style="width:${nc/n*100}%;background:var(--no)"></i></div>
+      <div class="row small"><span>${s.y.length} yes · ${s.m.length} if need be · ${s.n.length} no · ${s.u.length} no answer</span></div>
+      <div class="row small">${viewerIsOrg()?`${s.reqOk?`<span class="tag">Host and must-attend ✓</span>`:s.reqNo.length?`<span class="tag">Can't: ${s.reqNo.map(x=>esc(nameOf(x))).join(", ")}</span>`:`<span class="tag">Waiting for: ${s.reqUnknown.map(x=>esc(nameOf(x))).join(", ")}</span>`}${s.keyAll?`<span class="tag">Key people ${s.keyOk}/${s.keyAll}</span>`:""}${s.optOk?`<span class="tag">+${s.optOk} optional</span>`:""}<span class="tag">Likely about ${estimate(p,s)}</span>`:hostTag(p,s)}</div>
+      ${open?whoBlock(p,s.id,c):""}</div>`;});
+  return h+`</div></section>`;
+}
+function renderPeople(p){
+  const flexers=p.invitees.filter(x=>p.flex[x]);
+  let h=`<section class="card" aria-labelledby="pp-h"><div class="between"><h2 id="pp-h">People</h2><span class="small muted">${responded(p).length} of ${p.invitees.length} answered</span></div>`;
+  if(flexers.length){const names=flexers.map(x=>esc(nameOf(x)));const list=names.length>1?names.slice(0,-1).join(", ")+" and "+names[names.length-1]:names[0];
+    h+=`<div class="banner win"><b>👏 Thanks for making room, ${list}!</b><p class="small">${names.length>1?`${list} each changed a “No”`:`${list} changed a “No”`} so more of us can meet.</p></div>`;}
+  h+=`<div class="people">`;
+  const manage=LIVE&&S.viewer===S.organizer&&!previewing()&&orgTab==="results";
+  sortedInvitees(p).forEach(x=>{h+=`<div class="prow"><span>${esc(nameOf(x))}${x===me()?" (you)":""} ${manage?"":roleTag(p,x)} ${clapTag(p,x)}</span><span class="row"><span class="tag">${p.submitted[x]?"Answered":"No answer yet"}</span>${manage?liveManage(p,x):""}</span></div>`});
+  if(manage)h+=`<p class="small muted">${esc(ROLE_HELP)} “Remove” hides a person and their answers from everyone.</p>`;
+  return h+`</div></section>`;
+}
+function renderOrgTools(p){
+  const r=responded(p).length;const top=r?ranking(p):[];const t=top[0];
+  let h=`<section class="card" aria-labelledby="org-h"><h2 id="org-h">Organiser tools</h2>`;
+  if(!LIVE&&!p.closed&&t&&r>=Math.ceil(p.invitees.length/2)&&(!t.reqOk||(t.keyAll&&t.keyOk<t.keyAll))||p.needsRunoff)
+    h+=`<div class="banner warn"><b>No date works for everyone who matters yet.</b><p class="small">${t&&!t.reqOk?"Even the best date misses the host or a must-attend person.":"The best date is missing some key people."} A run-off with the top 3 often settles it. It opens as a draft, so you can check it before sending.</p><div><button class="btn small primary" data-act="runoff">Prepare run-off with top 3</button></div></div>`;
+  if(!LIVE&&!p.closed&&p.status!=="draft"){
+    h+=`<div class="stack" style="gap:8px"><h3>Ask for flexibility</h3><p class="small muted">Shows each person the dates where only their “No” stands in the way. Applies to people who already answered.</p>
+      <div><button class="btn small${p.flexRound?" toggled":""}" data-act="flex-round" aria-pressed="${p.flexRound}">${p.flexRound?"Flexibility round is on · Turn off":"Start flexibility round"}</button></div></div>`;}
+  if(LIVE?!p.final:!p.closed){
+    h+=`<div class="stack" style="gap:8px" id="decide"><h3>Decide</h3>${top.length?`<label class="f" for="final-pick">Pick the final ${p.mode==="day"?"date":"time"}<select id="final-pick">${top.slice(0,8).map(s=>`<option value="${s.id}">${esc(slotLabel(p,s.id))} · ${s.total} can come${s.reqOk?"":" · host or must-attend missing"}</option>`).join("")}</select></label>
+      <div class="row"><button class="btn small primary" data-act="close">Close voting and confirm</button>${!LIVE&&p.mode!=="list"?`<button class="btn small" data-act="runoff">Prepare run-off with top 3</button>`:""}</div>`:`<p class="small muted">You can decide once people have answered.</p>`}
+      <p class="small muted">${LIVE?(p.closed?"Voting has stopped. Pick the final date to tell everyone.":p.autoClose?`Voting stops after ${fmtDay(p.deadline)}, or earlier when you close it. Then you pick the final date.`:"Voting stays open until you close it."):p.autoClose?`Voting stops on ${fmtDay(p.deadline)} (or earlier when you close it). You then confirm the result; if the host, must-attend or key people can't make the best date, a follow-up round with the top 3 is prepared for you to check. Nothing is sent without you.`:"Voting stays open until you close it. You then confirm the result."}</p></div>`;
+  }
+  h+=`<div class="row"><button class="btn small" data-act="dup" data-id="${p.id}">Use as template for a new poll</button></div>`;
+  if(LIVE)return h+`</section>`;
+  h+=`<details><summary class="linkbtn" style="display:inline-block">Personal links (${p.invitees.length})</summary><p class="small muted" style="margin:8px 0">Example links. In the live version each person gets a real one; it opens the poll as them, no password.</p><div class="people">`;
+  sortedInvitees(p).forEach(x=>{const url=`https://plan.example/p/${p.id}?k=${p.tokens[x]||"x"}`;h+=`<div class="prow"><span>${esc(nameOf(x))} ${roleTag(p,x)}<br><small class="muted">${esc((S.people[x]||{}).email||"no e-mail")}</small></span><span class="linkbox"><code id="lk-${x}">${url}</code><button class="btn small" data-act="copy" data-target="lk-${x}">Copy</button></span></div>`});
+  return h+`</div></details></section>`;
+}
+function gcalLink(p){const id=p.final;let st,en;
+  if(id.length===10){st=id.replace(/-/g,"")+"T140000";en=addDays(id,1).replace(/-/g,"")+"T110000"}
+  else{const d=id.slice(0,10).replace(/-/g,""),a=mins(id.slice(11)),b=Math.min(a+60,winOf(p)[1]);st=`${d}T${hm(a).replace(":","")}00`;en=`${d}T${hm(b).replace(":","")}00`}
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(p.title)}&dates=${st}/${en}&ctz=Europe/Prague&details=${encodeURIComponent((p.note||"")+(p.map?"\n"+p.map:""))}`;}
+
+/* ---------- new poll setup ---------- */
+function sortedSetupPeople(){return S.setup.people.map((x,i)=>({...x,i})).sort((a,b)=>ROLE_ORDER[a.role]-ROLE_ORDER[b.role]||(b.seq||0)-(a.seq||0))}
+function renderCreate(){
+  const st=S.setup;const sel=new Set(st.dates);
+  const [y,m]=st.month.split("-").map(Number);const first=st.month+"-01";const nDays=new Date(y,m,0).getDate();const thisM=TODAY.slice(0,7);
+  let cal=`<div class="cal" data-picker="1">${DOW.map((d,i)=>`<button type="button" class="dowbtn" data-act="pick-dow" data-v="${i}" aria-label="Select or unselect every ${DOWL[i]} in ${MONL[m-1]}">${d}</button>`).join("")}`;
+  for(let i=0;i<dowOf(first);i++)cal+=`<div class="cell off"></div>`;
+  for(let d=1;d<=nDays;d++){const s=`${st.month}-${pad(d)}`;const past=s<TODAY;const on=sel.has(s);const evs=gcalDay(s);
+    const evh=evs.length?`<span class="ev" aria-hidden="true">${evs.slice(0,3).map(e=>`<i class="${e.allDay?"ad":""}"></i>`).join("")}</span>`:"";
+    cal+=past?`<div class="cell past${dayClass(s)}" aria-hidden="true"${dayTitle(s)}><span class="dn">${d}</span></div>`:`<button type="button" class="cell${dayClass(s,{highlight:st.highlight})}${on?" picked":""}${s===TODAY?" today":""}" data-pickdate="${s}" aria-pressed="${on}"${dayTitle(s)} aria-label="${fmtDay(s)}${s===TODAY?", today":""}${holName(s)?", "+esc(holName(s)):""}${evs.length?`, ${evs.length} event${evs.length>1?"s":""} in your calendar`:""}"><span class="dn">${d}</span>${s===TODAY?`<span class="tiny">today</span>`:""}${evh}</button>`;}
+  cal+=`</div>`;
+  const byMonth={};st.dates.slice().sort().forEach(s=>{(byMonth[s.slice(0,7)]=byMonth[s.slice(0,7)]||[]).push(s)});
+  const monthHols=[];for(let d=1;d<=nDays;d++){const s=`${st.month}-${pad(d)}`;if(holName(s))monthHols.push(`${fmtDay(s)}: ${holName(s)}`)}
+  const tmpl=S.order.map(id=>S.polls[id]);
+  let h=`<div class="stack"><div class="between"><h1>${st.editingId?"Edit poll":"New poll"}</h1><button class="linkbtn" data-act="go-list">See existing polls</button></div>
+  ${st.editingId?`<div class="banner info"><b>You're editing “${esc(S.polls[st.editingId].title)}”.</b><p class="small">Answers already given stay for dates you keep.</p><div><button type="button" class="btn small" data-act="setup-blank">Stop editing, start a blank poll</button></div></div>`:
+  `<section class="card"><label class="f" for="s-from">Start from<select id="s-from" data-act="s-from"><option value="">A blank poll</option>${tmpl.map(p=>`<option value="${p.id}" ${st.from===p.id?"selected":""}>Copy of “${esc(p.title)}”${p.example?" (example)":""}</option>`).join("")}</select></label>
+   <p class="small muted">A copy takes over the details, people and settings. You then pick new dates.</p></section>`}
+  <form id="create-form" class="stack" novalidate>
+  <section class="card"><h2><span class="stepno">1</span> What do people choose?</h2>
+    <div class="chips" role="radiogroup" aria-label="People choose">
+      <button type="button" class="chip" data-act="s-mode" data-v="day" aria-pressed="${st.mode==="day"}">Whole days</button>
+      <button type="button" class="chip" data-act="s-mode" data-v="hour" aria-pressed="${st.mode==="hour"}">Hours within a day</button></div>
+    <p class="small muted">${st.mode==="day"?"One box per date. For parties, trips, workshops: anything that takes most of the day.":"One box per hour on every date you pick. For calls and meetings."}</p>
+    ${st.mode==="hour"?`<div class="grid2">${timeSel("h1","From")}${timeSel("h2","Until")}</div><p class="small muted">Each box is one hour, starting at “From”. If “Until” isn't a whole hour later, the last box is shorter.</p>`:""}</section>
+  <section class="card"><h2><span class="stepno">2</span> What are you planning?</h2>
+    <label class="f" for="s-title">Name<input type="text" id="s-title" data-setup="title" value="${esc(st.title)}" placeholder="e.g. Christmas get-together"></label>
+    ${LIVE?`<label class="f" for="s-org">Your name, as people see it<input type="text" id="s-org" data-setup="org" value="${esc(st.org||"")}" placeholder="e.g. Martin" maxlength="80"></label>`:""}
+    <div class="stack" style="gap:6px"><label class="f" for="s-note" style="margin:0">Details for the invitees (optional)</label>
+      <div class="tool" role="toolbar" aria-label="Formatting"><button type="button" data-act="fmt" data-v="b" aria-label="Bold"><b>B</b></button><button type="button" data-act="fmt" data-v="i" aria-label="Italic"><i>I</i></button><button type="button" data-act="fmt" data-v="a">Link</button></div>
+      <textarea id="s-note" data-setup="note" placeholder="Plan for the day, what to bring, how to get there">${esc(st.note)}</textarea>
+      ${st.note.trim()?`<div class="mdprev" aria-label="Preview"><span class="eyebrow">How invitees see it</span><div id="s-note-prev">${md(st.note)}</div></div>`:""}</div>
+    <label class="f" for="s-map">Place on a map (optional)<input type="text" id="s-map" data-setup="map" value="${esc(st.map)}" placeholder="Paste a Google Maps or Mapy.cz link"></label>
+    <p class="small muted">In Google Maps or Mapy.cz, open the place and use Share → Copy link.</p></section>
+  <section class="card"><h2><span class="stepno">3</span> Which dates can people choose from?</h2>
+    <div class="hint"><span><b>Tap a date</b> to add or remove it. <b>Drag</b> across dates to add several. <b>Tap a weekday name</b> (the outlined buttons) to add every such date in the month; tap it again to remove them.</span></div>
+    ${renderGcalPanel()}
+    <div class="between"><button type="button" class="btn small" data-act="m-prev" aria-label="Previous month" ${st.month<=thisM?"disabled":""}>‹</button>
+      <b class="month" style="margin:0">${MONL[m-1]} ${y}</b>
+      <span class="row"><button type="button" class="linkbtn" data-act="m-today" ${st.month===thisM?"hidden":""}>Today</button><button type="button" class="btn small" data-act="m-next" aria-label="Next month">›</button></span></div>
+    ${cal}
+    <div class="legend"><span><i class="sw" style="background:var(--accent)"></i>Chosen</span><span><i class="sw" style="background:var(--we);border:1px solid var(--line)"></i>Weekend</span><span><i class="sw" style="border-bottom:3px solid var(--no)"></i>Public holiday (CZ)</span>${GC.state==="ready"?`<span><i class="sw" style="background:var(--muted);border-radius:50%;width:7px;height:7px"></i>Event in your calendar</span><span><i class="sw" style="background:var(--maybe);width:10px;height:6px"></i>All-day event</span>`:""}</div>
+    ${monthHols.length?`<p class="small muted">Holidays this month: ${monthHols.map(esc).join(" · ")}</p>`:""}
+    ${renderChosenEvents()}
+    <div class="between"><span class="small"><b>${st.dates.length}</b> date${st.dates.length===1?"":"s"} chosen</span>${st.dates.length?`<button type="button" class="linkbtn" data-act="pick-clear">Remove all dates</button>`:""}</div>
+    ${Object.keys(byMonth).map(k=>`<div class="stack" style="gap:4px"><span class="eyebrow">${MONL[+k.slice(5)-1]} ${k.slice(0,4)}</span><div class="chips">${byMonth[k].map(s=>`<button type="button" class="chip" data-act="pick-remove" data-v="${s}" aria-label="Remove ${fmtDay(s)}">${fmtDay(s)} ✕</button>`).join("")}</div></div>`).join("")}
+    ${st.mode==="hour"?renderHourSetup():""}
+    <fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:600;font-size:.85rem">Mark weekdays you'd prefer (optional, shown to everyone)</legend><div class="row">${DOW.map((d,i)=>`<label class="check"><input type="checkbox" data-act="s-hl" value="${i}" ${st.highlight.includes(i)?"checked":""}> ${d}</label>`).join("")}</div></fieldset></section>
+  ${renderPeopleSetup()}
+  <section class="card"><h2><span class="stepno">5</span> When does voting stop?</h2>
+    <div class="grid2"><label class="f" for="s-dl">Voting stops on<input type="date" id="s-dl" data-setup="deadline" value="${st.deadline}" min="${TODAY}"></label>
+    <label class="check" style="align-self:end"><input type="checkbox" data-act="s-auto" ${st.autoClose?"checked":""}> Stop voting automatically on that date</label></div>
+    <ul class="small" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
+      <li>Voting stops on this date, or earlier whenever you close it yourself.</li>${LIVE?`<li>Then you pick the final date.</li></ul></section>`:`
+      <li>Then you get the result to confirm. Nothing is decided or sent automatically.</li>
+      <li>If the host, must-attend or key people can't make the best date, you get a follow-up round with the top 3 dates, ready for you to check and send.</li></ul></section>`}
+  ${st.err?`<p class="small" style="color:var(--no)" role="alert">${esc(st.err)}</p>`:""}
+  <div class="stack" style="gap:6px"><div class="row"><button class="btn primary" type="submit"${LV.busy?" disabled":""}>${st.editingId?"Save changes":LIVE?"Create poll":"Create draft"} · ${st.dates.length} date${st.dates.length===1?"":"s"}${LIVE?"":` · ${st.people.length+1} people`}</button></div>
+   <p class="small muted">${LIVE?(st.editingId?"Saves the poll. Everyone sees the changes.":"Creates the poll and gives you the link to share. Nobody is e-mailed automatically."):st.editingId?"Saves the poll. If it was already sent, invitees see the changes on their link.":"Creates the poll for you to check. Nothing is sent until you press “Send invitations”."}</p></div>
+  </form></div>`;
+  return h;
+}
+function timeSel(k,label){const v=S.setup[k]||"09:00";const H=v.slice(0,2),M=v.slice(3,5);
+  return `<fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:4px"><legend style="font-weight:600;font-size:.85rem;padding:0">${label}</legend><div class="row" style="flex-wrap:nowrap">
+    <label class="sr" for="s-${k}-h">${label}, hour</label><select id="s-${k}-h" data-act="s-time" data-k="${k}" data-part="h" style="width:auto">${Array.from({length:24},(_,i)=>`<option value="${pad(i)}" ${pad(i)===H?"selected":""}>${pad(i)}</option>`).join("")}</select>
+    <span aria-hidden="true">:</span>
+    <label class="sr" for="s-${k}-m">${label}, minutes</label><select id="s-${k}-m" data-act="s-time" data-k="${k}" data-part="m" style="width:auto">${["00","15","30","45"].map(x=>`<option value="${x}" ${x===M?"selected":""}>${x}</option>`).join("")}</select></div></fieldset>`}
+function renderHourSetup(){const st=S.setup;const a=mins(st.h1),b=mins(st.h2);
+  if(!st.dates.length)return `<div class="hint"><span><b>Hours within a day:</b> pick the dates above. Each date then appears here with its hours ${st.h1}–${st.h2}, and you can switch off hours you don't want to offer.</span></div>`;
+  if(b<=a)return `<p class="small" style="color:var(--no)">In step 1, “Until” must be later than “From”.</p>`;
+  const hs=boxStarts(a,b);const ds=st.dates.slice().sort();const on=ds.reduce((n,d)=>n+hs.filter(x=>!st.excl[`${d}T${hm(x)}`]).length,0);
+  let g=`<div class="stack" style="gap:8px"><h3>Hours people can choose</h3>
+    <div class="hint"><span><b>Tap an hour</b> to switch it off or on. <b>Drag</b> to switch several. <b>Tap a date or an hour heading</b> to switch the whole row or column.</span></div>
+    <div class="exgrid"><div class="exrow"><div></div><div class="exhours">${hs.map(x=>`<button type="button" class="headbtn" data-act="ex-col" data-h="${hm(x)}" aria-label="Switch ${hm(x)} on every date">${hm(x)}</button>`).join("")}</div></div>`;
+  ds.forEach(d=>{g+=`<div class="exrow"><button type="button" class="headbtn" data-act="ex-row" data-d="${d}"${dayTitle(d)} aria-label="Switch every hour on ${fmtDay(d)}">${fmtDay(d)}</button><div class="exhours">`;
+    hs.forEach(x=>{const id=`${d}T${hm(x)}`;const off=!!st.excl[id];g+=`<button type="button" class="cell ${off?"offh":"on"}" data-exh="${id}" aria-pressed="${!off}" aria-label="${fmtDay(d)} ${hm(x)} ${off?"not offered":"offered"}" style="font-size:.75rem">${hm(x)}</button>`});g+=`</div></div>`});
+  return g+`</div><p class="small"><b>${on}</b> boxes offered on ${ds.length} date${ds.length>1?"s":""}.</p></div>`;}
+function renderGcalPanel(){
+  if(LIVE)return "";
+  if(!MCP)return `<p class="small muted">Your Google Calendar shows up here when this page is open in claude.ai.</p>`;
+  if(GC.state==="idle")return `<div><button type="button" class="btn small" data-act="gcal">Show my Google Calendar</button></div>`;
+  if(GC.state==="loading")return `<p class="small muted">Loading your calendars…</p>`;
+  if(GC.state==="error")return `<div class="banner warn"><p class="small">${esc(GC.err)}</p><div><button type="button" class="btn small" data-act="gcal">Try again</button></div></div>`;
+  return `<details><summary class="linkbtn" style="display:inline-block">Calendars shown (${GC.cals.filter(c=>S.gcalShow[c.id]).length} of ${GC.cals.length})</summary>
+    <div class="callist">${GC.cals.map(c=>`<label class="check"><input type="checkbox" data-act="gcal-show" value="${esc(c.id)}" ${S.gcalShow[c.id]?"checked":""}> ${esc(c.name)}${c.holiday?" (holidays are already shown)":""}</label>`).join("")}</div></details>
+    ${GC.err?`<p class="small" style="color:var(--no)">${esc(GC.err)}</p>`:""}`;}
+function renderChosenEvents(){if(GC.state!=="ready")return "";const st=S.setup;const days=st.dates.filter(s=>s.slice(0,7)===st.month).sort();
+  const rows=days.map(s=>({s,e:gcalDay(s)})).filter(x=>x.e.length);if(!rows.length)return "";
+  return `<div class="evlist"><span class="eyebrow">Your calendar on the chosen dates</span>${rows.map(x=>`<div><span class="d">${fmtDay(x.s)}</span> · ${x.e.slice(0,4).map(e=>`${e.allDay?"all day":e.start.slice(11,16)} ${esc(e.title)}`).join(" · ")}${x.e.length>4?` · +${x.e.length-4} more`:""}</div>`).join("")}</div>`;}
+
+function renderPeopleSetup(){
+  if(LIVE)return `<section class="card"><h2><span class="stepno">4</span> Who can join?</h2><p class="small">Anyone with the link. After you create the poll, you get one link to share with the team. Each person adds their own name and e-mail and can change only their own answers.</p></section>`;
+  const st=S.setup;const q=st.q.trim();
+  const local=q.length>=1?S.contacts.filter(c=>(norm(c.name).includes(norm(q))||norm(c.email).includes(norm(q)))&&!st.people.some(p=>norm(p.name)===norm(c.name))).slice(0,6):[];
+  let h=`<section class="card"><h2><span class="stepno">4</span> Who is invited?</h2>
+    <p class="small muted">${ROLE_HELP}</p>
+    <label class="f" for="s-add">Add people<input type="text" id="s-add" data-setup="q" value="${esc(st.q)}" placeholder="Name or e-mail; several separated by commas" autocomplete="off"></label>
+    <div class="row"><button type="button" class="btn small primary" data-act="p-add">Add</button>${MCP&&q.length>=2?`<button type="button" class="btn small" data-act="gmail">Find “${esc(q)}” in Gmail</button>`:""}${!st.people.length?`<button type="button" class="linkbtn" data-act="p-example">Add the example team (19 people)</button>`:""}</div>`;
+  if(st.addMsg)h+=`<p class="small" role="status" style="color:${st.addMsgErr?"var(--no)":"var(--ink)"}">${esc(st.addMsg)}</p>`;
+  const ty=st.typos[0];
+  if(ty)h+=`<div class="banner warn"><b>Did you mean ${esc(ty.match.name)}?${st.typos.length>1?` <span class="muted small">(1 of ${st.typos.length} to check)</span>`:""}</b><p class="small">“${esc(ty.typed)}” looks like ${esc(ty.match.name)}${ty.match.email?` (${esc(ty.match.email)})`:""}${ty.inList?", who is already invited":""}.</p>
+    <div class="row">${ty.inList?"":`<button type="button" class="btn small primary" data-act="typo-use">Add ${esc(ty.match.name)}</button>`}<button type="button" class="btn small" data-act="typo-new">Add “${esc(ty.typed)}” as a new person</button><button type="button" class="linkbtn" data-act="typo-cancel">Skip this name</button></div></div>`;
+  if(local.length)h+=`<div class="sugg" aria-label="Suggestions from people you invited before"><span class="eyebrow">People you invited before</span>${local.map((c,i)=>`<button type="button" data-act="p-pick" data-name="${esc(c.name)}" data-email="${esc(c.email)}">${esc(c.name)} <small>${esc(c.email)}${c.example?" · example":""}</small></button>`).join("")}</div>`;
+  if(GM.state==="loading")h+=`<p class="small muted">Searching Gmail…</p>`;
+  if(GM.state==="error")h+=`<p class="small" style="color:var(--no)">${esc(GM.err)}</p>`;
+  if(GM.state==="ready"&&GM.q===q)h+=GM.results.length?`<div class="sugg"><span class="eyebrow">Found in Gmail</span>${GM.results.map(c=>`<button type="button" data-act="p-pick" data-name="${esc(c.name)}" data-email="${esc(c.email)}">${esc(c.name)} <small>${esc(c.email)}</small></button>`).join("")}</div>`:`<p class="small muted">Nothing in Gmail for “${esc(q)}”.</p>`;
+  h+=`<div class="people" style="gap:0"><div class="prow"><span>${esc(nameOf(S.organizer))} (you, organiser)</span><span class="tag">Votes too</span></div>`;
+  sortedSetupPeople().forEach(x=>{const bad=x.email&&!okMail(x.email);
+    h+=`<div class="pedit${flashNames.has(x.name)?" new":""}">
+      <label class="sr" for="pn-${x.i}">Name</label><input type="text" id="pn-${x.i}" data-pf="name" data-i="${x.i}" value="${esc(x.name)}" aria-label="Name">
+      <button type="button" class="btn small" data-act="p-del" data-i="${x.i}" aria-label="Remove ${esc(x.name)}" style="padding:0;min-width:44px">✕</button>
+      <input type="email" class="full" id="pe-${x.i}" data-pf="email" data-i="${x.i}" value="${esc(x.email||"")}" placeholder="E-mail (needed to send the link)" aria-label="E-mail of ${esc(x.name)}" style="${bad?"border-color:var(--no)":""}">
+      <select class="full" id="pr-${x.i}" data-act="p-role" data-i="${x.i}" aria-label="Role of ${esc(x.name)}">${ROLES.map(([v,l])=>`<option value="${v}" ${x.role===v?"selected":""}>${l}</option>`).join("")}</select>
+      ${bad?`<span class="full small" style="color:var(--no)">This e-mail looks wrong.</span>`:!x.email?`<span class="full small muted">No e-mail yet</span>`:""}</div>`});
+  return h+`</div></section>`;
+}
+function addPerson(name,email,force){const st=S.setup;name=(name||"").trim();email=(email||"").trim();if(!name&&!email)return{s:"empty"};
+  if(okMail(name)&&!email){email=name;name=""}
+  if(!name&&email)name=email.split("@")[0].replace(/[._]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+  if(!force&&norm(name)===norm(nameOf(S.organizer)))return{s:"organiser",name};
+  const exact=st.people.find(p=>norm(p.name)===norm(name));if(exact){flashNames.add(exact.name);if(email&&!exact.email)exact.email=email;return{s:"exists",name:exact.name}}
+  if(!force){const known=S.contacts.find(c=>norm(c.name)===norm(name));
+    if(known){email=email||known.email}
+    else{const pool=[...st.people.map(p=>({...p,inList:true})),...S.contacts];
+      const lim=norm(name).length<=6?1:2;
+      const near=pool.filter(c=>{const d=lev(c.name,name);return d>0&&d<=lim}).sort((a,b)=>lev(a.name,name)-lev(b.name,name))[0];
+      if(near)return{s:"typo",typo:{typed:name,email,match:{name:near.name,email:near.email||""},inList:!!near.inList}}}}
+  st.people.push({name,email,role:"reg",seq:addSeq++});flashNames.add(name);
+  if(email&&okMail(email)&&!S.contacts.some(c=>norm(c.email)===norm(email)))S.contacts.push({name,email});
+  return{s:"added",name};}
+const listNames=a=>a.length>1?a.slice(0,-1).join(", ")+" and "+a[a.length-1]:a[0]||"";
+function createPoll(){
+  const st=S.setup;let msg="";
+  if(!st.title.trim())msg="Give the poll a name in step 2.";
+  else if(LIVE&&!(st.org||"").trim())msg="Add your name in step 2, so people know who organises.";
+  else if(!st.dates.length)msg="Pick at least one date in step 3.";
+  else if(st.mode==="hour"&&mins(st.h2)<=mins(st.h1))msg="In step 1, “Until” must be later than “From”.";
+  else if(!LIVE&&!st.people.length)msg="Invite at least one person in step 4.";
+  else if(st.people.some(x=>x.email&&!okMail(x.email)))msg="One of the e-mails in step 4 looks wrong (marked in red).";
+  if(msg){st.err=msg;render();return}
+  if(LIVE){liveCreate();return}
+  const dates=st.dates.slice().sort();const editing=st.editingId&&S.polls[st.editingId];const id=editing?editing.id:"p"+Date.now().toString(36);const roles={},inv=[S.organizer];
+  st.people.forEach(x=>{let pid=Object.keys(S.people).find(k=>norm(S.people[k].name)===norm(x.name));
+    if(!pid){pid="u"+token();S.people[pid]={id:pid,name:x.name,email:x.email||""}}else{S.people[pid].name=x.name;if(x.email)S.people[pid].email=x.email}
+    if(!inv.includes(pid))inv.push(pid);if(x.role!=="reg")roles[pid]=x.role;
+    if(x.email&&okMail(x.email)){const c=S.contacts.find(c=>norm(c.email)===norm(x.email));if(c){c.name=x.name;delete c.example}else S.contacts.push({name:x.name,email:x.email})}});
+  const base=editing||{answers:{},submitted:{},dismissed:{},flex:{},tokens:{},closed:false,final:null,needsRunoff:false,flexRound:false,parent:null,status:"draft",created:TODAY};
+  const p={...base,id,title:st.title.trim(),note:st.note.trim(),map:st.map.trim(),mode:st.mode,dates,from:dates[0],to:dates[dates.length-1],highlight:st.highlight.slice(),
+    hours:null,win:st.mode==="hour"?[mins(st.h1),mins(st.h2)]:null,excl:st.mode==="hour"?{...st.excl}:{},days:null,slots:undefined,deadline:st.deadline||addDays(TODAY,7),autoClose:st.autoClose,invitees:inv,roles,example:false};
+  inv.forEach(x=>{if(!p.tokens[x])p.tokens[x]=token()});
+  S.polls[id]=p;if(!editing)S.order.unshift(id);S.setup=newSetup();S.route={v:"poll",id};draft=null;sendOpen=false;save();render();window.scrollTo(0,0);
+  toast(editing?"Changes saved.":"Draft created. Check it, then send the invitations from the yellow box at the top.");
+}
+function setupPick(s,on){const st=S.setup;const i=st.dates.indexOf(s);if(on&&i<0)st.dates.push(s);if(!on&&i>=0)st.dates.splice(i,1);
+  const el=document.querySelector(`[data-pickdate="${s}"]`);if(el){el.classList.toggle("picked",on);el.setAttribute("aria-pressed",on)}}
+function wrapSel(kind){const ta=document.getElementById("s-note");if(!ta)return;const a=ta.selectionStart,b=ta.selectionEnd,v=ta.value,sel=v.slice(a,b);let ins;
+  if(kind==="b")ins=`**${sel||"bold text"}**`;else if(kind==="i")ins=`*${sel||"italic text"}*`;else ins=`[${sel||"link text"}](https://)`;
+  S.setup.note=v.slice(0,a)+ins+v.slice(b);save();render();const t=document.getElementById("s-note");if(t){t.focus();const pos=a+ins.length;t.setSelectionRange(pos,pos)}}
+
+/* ---------- booking ---------- */
+const toMin=t=>{const[a,b]=t.split(":").map(Number);return a*60+b};const toHM=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
+function bookingSlots(){const b=S.booking;const out=[];
+  for(let d=b.start;d<=b.end;d=addDays(d,1)){if(!b.days.includes(dowOf(d)))continue;
+    const busy=[];b.calendars.filter(c=>c.check).forEach(c=>busyFor(c.id,d).forEach(x=>busy.push([toMin(x[0])-b.buffer,toMin(x[1])+b.buffer])));
+    S.bookings.filter(x=>x.date===d).forEach(x=>busy.push([toMin(x.time)-b.buffer,toMin(x.time)+b.duration+b.buffer]));
+    const step=b.duration<=15?15:30;
+    const day=[];for(let m=toMin(b.from);m+b.duration<=toMin(b.to);m+=step){
+      const clash=busy.some(([s,e])=>m<e&&m+b.duration>s);const key=`${d} ${toHM(m)}`;
+      day.push({key,date:d,time:toHM(m),busy:clash,removed:!!b.removed[key],taken:S.bookings.some(x=>x.key===key)});}
+    b.extra.filter(x=>x.date===d).forEach(x=>{if(!day.some(y=>y.time===x.time))day.push({key:`${d} ${x.time}`,date:d,time:x.time,extra:true,busy:false,removed:!!b.removed[`${d} ${x.time}`],taken:S.bookings.some(y=>y.key===`${d} ${x.time}`)})});
+    day.sort((a,c)=>a.time<c.time?-1:1);out.push({date:d,slots:day});}
+  return out;}
+function renderBookingSetup(){
+  const b=S.booking;const days=bookingSlots();const offered=days.reduce((n,d)=>n+d.slots.filter(s=>!s.busy&&!s.removed&&!s.taken).length,0);
+  let h=`<div class="stack"><h1>Book with me</h1><p class="muted">Set it up once, check the slots, then send the link. The other person only sees the times you offer.</p><div class="steps">`;
+  h+=`<section class="card"><h2><span class="stepno">1</span> How long?</h2><div class="chips" role="radiogroup" aria-label="Meeting length">${[15,30,45,60,90].map(m=>`<button class="chip" data-act="b-dur" data-v="${m}" aria-pressed="${b.duration===m}">${m} min</button>`).join("")}</div>
+     <h3>Gap between meetings</h3><div class="chips" role="radiogroup" aria-label="Buffer">${[0,5,10,15,30].map(m=>`<button class="chip" data-act="b-buf" data-v="${m}" aria-pressed="${b.buffer===m}">${m?m+" min":"None"}</button>`).join("")}</div></section>`;
+  h+=`<section class="card"><h2><span class="stepno">2</span> When?</h2><div class="row">${DOW.map((d,i)=>`<label class="check"><input type="checkbox" data-act="b-day" value="${i}" ${b.days.includes(i)?"checked":""}> ${d}</label>`).join("")}</div>
+     <div class="grid2"><label class="f" for="b-from">Earliest start<input type="time" id="b-from" data-act="b-field" value="${b.from}" step="900"></label><label class="f" for="b-to">Latest end<input type="time" id="b-to" data-act="b-field" value="${b.to}" step="900"></label>
+     <label class="f" for="b-start">First day<input type="date" id="b-start" data-act="b-field" value="${b.start}"></label><label class="f" for="b-end">Last day<input type="date" id="b-end" data-act="b-field" value="${b.end}"></label></div></section>`;
+  h+=`<section class="card"><h2><span class="stepno">3</span> Which calendars?</h2><p class="small muted">Example calendars. The live version lists your Google calendars.</p>
+     <h3>Check these for conflicts</h3><div class="stack" style="gap:0">${b.calendars.map(c=>`<label class="check"><input type="checkbox" data-act="b-cal" value="${c.id}" ${c.check?"checked":""}> ${esc(c.name)}</label>`).join("")}</div>
+     <label class="f" for="b-save">Put new bookings into<select id="b-save" data-act="b-field">${b.calendars.map(c=>`<option value="${c.id}" ${b.saveTo===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label></section>`;
+  h+=`<section class="card"><h2><span class="stepno">4</span> Fine-tune the slots</h2><p class="small muted">Tap a slot to remove it, tap again to bring it back. Grey slots clash with your calendar.</p>
+     <div class="legend"><span><i class="sw" style="background:var(--accent-soft);border:2px solid var(--accent)"></i>Offered</span><span><i class="sw" style="border:2px dashed var(--line-strong)"></i>Removed</span><span><i class="sw" style="background:var(--tag)"></i>Busy</span><span><i class="sw" style="background:var(--yes-soft);border:2px solid var(--yes)"></i>Added by you</span></div>`;
+  days.forEach(d=>{h+=`<div class="stack" style="gap:6px"><b class="small">${fmtDay(d.date)}</b><div class="chips">${d.slots.length?d.slots.map(s=>s.taken?`<span class="chip busy">${s.time} booked</span>`:s.busy?`<span class="chip busy" title="Clashes with your calendar">${s.time}</span>`:`<button class="chip${s.removed?" removed":""}${s.extra?" extra":""}" data-act="b-toggle" data-key="${s.key}" aria-pressed="false" aria-label="${s.time} ${s.removed?"removed, tap to offer":"offered, tap to remove"}">${s.time}</button>`).join(""):`<span class="small muted">No free time</span>`}</div></div>`});
+  h+=`<div class="stack" style="gap:8px"><h3>Add a time outside your usual hours</h3><div class="grid2"><label class="f" for="x-date">Day<input type="date" id="x-date" value="${b.start}"></label><label class="f" for="x-time">Start<input type="time" id="x-time" value="18:00" step="900"></label></div><p class="small" id="x-err" style="color:var(--no)" hidden></p><div><button class="btn small" data-act="b-add">Add this time</button></div></div></section>`;
+  h+=`<section class="card"><div class="between"><h2>Your link</h2><span class="tag">${offered} slots offered</span></div>
+     <div class="linkbox"><code id="b-link">https://plan.example/book/martin?k=${b.token}</code><button class="btn small" data-act="copy" data-target="b-link">Copy</button></div>
+     <div class="row"><button class="btn primary" data-act="b-guest">See it as the other person</button></div>
+     ${S.bookings.length?`<h3>Booked</h3><div class="people">${S.bookings.map(x=>`<div class="prow"><span>${fmtDay(x.date)}, ${x.time}</span><span>${esc(x.name)}</span></div>`).join("")}</div>`:`<p class="small muted">No bookings yet.</p>`}</section>`;
+  return h+`</div></div>`;
+}
+function renderGuest(){
+  const b=S.booking;const days=bookingSlots().map(d=>({date:d.date,slots:d.slots.filter(s=>!s.busy&&!s.removed&&!s.taken)})).filter(d=>d.slots.length);
+  let h=`<div class="stack"><header class="top"><div class="brand">Team Meeting Planner<small>prototype</small></div></header>`;
+  if(bookState.done){const x=bookState.done;const st=x.date.replace(/-/g,"")+"T"+x.time.replace(":","")+"00";const em=toHM(toMin(x.time)+b.duration);const en=x.date.replace(/-/g,"")+"T"+em.replace(":","")+"00";
+    return h+`<div class="banner win"><b>Booked: ${fmtDay(x.date)}, ${x.time}–${em}</b><p class="small">Martin gets it in his calendar. You can add it to yours:</p><div><a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(b.title)}&dates=${st}/${en}&ctz=Europe/Prague" target="_blank" rel="noopener">Add to Google Calendar</a></div></div>
+      <div><button class="btn" data-act="g-again">Book another time</button></div></div>`;}
+  h+=`<span class="eyebrow">Martin offers these times</span><h1>${esc(b.title)} · ${b.duration} min</h1><p class="muted">Times in Prague time (CET). Pick one that suits you.</p>`;
+  days.forEach(d=>{h+=`<div class="card" style="gap:8px"><b>${fmtDay(d.date)}</b><div class="chips" role="radiogroup" aria-label="${fmtDay(d.date)}">${d.slots.map(s=>`<button class="chip" data-act="g-pick" data-key="${s.key}" aria-pressed="${bookState.sel===s.key}">${s.time}</button>`).join("")}</div>
+    ${bookState.sel&&bookState.sel.startsWith(d.date)?`<form id="g-form" class="stack" novalidate><b>${fmtDay(d.date)}, ${bookState.sel.slice(11)} · ${b.duration} min</b>
+      <label class="f" for="g-name">Your name<input type="text" id="g-name" autocomplete="name"></label><label class="f" for="g-mail">Your e-mail<input type="email" id="g-mail" autocomplete="email"></label>
+      <label class="f" for="g-note">Anything Martin should know? (optional)<input type="text" id="g-note"></label><p class="small" id="g-err" style="color:var(--no)" hidden></p><div><button class="btn primary" type="submit">Confirm booking</button></div></form>`:""}</div>`});
+  if(!days.length)h+=`<p class="muted">No free times right now. Ask Martin for new ones.</p>`;
+  return h+`</div>`;
+}
+
+/* ---------- admin & save bar ---------- */
+function renderAdmin(){
+  if(LIVE){document.getElementById("adminwrap").innerHTML="";return}
+  const p=curPoll()||S.polls.xmas;const w=document.getElementById("adminwrap");
+  const lift=draftChanged()&&S.viewer!=="guest";
+  let h=`<button class="adminbtn${lift&&!S.adminOpen?" lift":""}" data-act="admin" aria-expanded="${S.adminOpen}">Admin · ${S.adminOpen?"Hide":"Show"}</button>`;
+  if(S.adminOpen){h+=`<div class="adminpanel" role="region" aria-label="Admin"><div class="in"><h2>Admin (prototype only)</h2>
+    <p class="small muted">Example data, saved only in this browser. To see what an invitee sees, open a poll and use “Preview as…”.</p>
+    <div class="row">${S.viewer==="guest"?"":`<button class="btn small" data-act="b-guest">Open the booking link as a guest</button>`}<button class="btn small" data-act="sim-deadline">Simulate: voting deadline passed</button><button class="btn small" data-act="reset">Reset example data</button></div>
+    <p class="small muted">On the Christmas example: Petra hasn't answered, Tomáš is the host, Filip is optional.</p></div></div>`;}
+  w.innerHTML=h;
+}
+const sortObj=o=>Object.keys(o).sort().reduce((a,k)=>(o[k]&&(a[k]=o[k]),a),{});
+function draftChanged(){const p=curPoll();const v=me();if(!p||previewing()||!draft||draft.pollId!==p.id||draft.pid!==v||!p.invitees.includes(v)||p.closed)return false;
+  if(p.mode==="list"&&!p.submitted[v])return true;
+  return JSON.stringify(sortObj(draft.answers))!==JSON.stringify(sortObj(p.answers[v]||{}))||!p.submitted[v]&&Object.keys(draft.answers).length>0}
+function renderSaveBar(){let el=document.getElementById("savebar");const show=S.viewer!=="guest"&&S.route.v==="poll"&&draftChanged();
+  if(!show){if(el)el.remove();document.documentElement.style.removeProperty("--savebar-h");return}
+  const p=curPoll();const mine=p.answers[S.viewer]||{};let changes=0;new Set([...Object.keys(draft.answers),...Object.keys(mine)]).forEach(k=>{if((draft.answers[k]||"")!==(mine[k]||""))changes++});
+  const all=slotIds(p).length,done=Object.values(draft.answers).filter(Boolean).length;
+  if(!el){el=document.createElement("div");el.id="savebar";el.className="savebar";document.body.appendChild(el)}
+  el.innerHTML=`<div class="in"><span class="small">${changes?`${changes} unsaved change${changes>1?"s":""}`:"Ready to save"} · ${done} of ${all} answered</span><span class="row"><button class="btn small" data-act="discard">Undo all</button><button class="btn small primary" data-act="save">Save my answers</button></span></div>`;
+  document.documentElement.style.setProperty("--savebar-h",el.offsetHeight+"px");}
+
+/* ---------- actions ---------- */
+function toast(t){let el=document.querySelector(".toast");if(!el){el=document.createElement("div");el.className="toast";el.setAttribute("role","status");document.body.appendChild(el)}
+  el.textContent=t;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.remove(),4600);}
+function applause(){if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;for(let i=0;i<7;i++){const c=document.createElement("span");c.className="clap";c.textContent="👏";c.style.left=(20+Math.random()*60)+"vw";c.style.top=(55+Math.random()*25)+"vh";c.style.animationDelay=(i*.08)+"s";document.body.appendChild(c);setTimeout(()=>c.remove(),2000)}}
+function commit(p,pid,newAns){
+  const old=p.answers[pid]||{};const wasSub=!!p.submitted[pid];
+  const flexed=wasSub?Object.keys(newAns).filter(k=>old[k]==="n"&&(newAns[k]==="y"||newAns[k]==="m")):[];
+  p.answers[pid]=JSON.parse(JSON.stringify(newAns));p.submitted[pid]=true;
+  if(flexed.length){p.flex[pid]=(p.flex[pid]||0)+flexed.length;const best=flexed.map(k=>({k,s:stat(p,k)})).sort((a,b)=>b.s.total-a.s.total)[0];
+    save();persist(p,pid);draft=null;render();applause();toast(`👏 Thanks for making room! ${slotLabel(p,best.k)} now works for ${best.s.total} people.`);}
+  else{save();persist(p,pid);draft=null;render();toast(wasSub?"Saved. Everyone sees your updated answers.":"Saved. Thanks! Everyone can now see your answers.");}
+}
+function startRunoff(p){
+  const top=ranking(p).slice(0,3);const id=p.id+"-r"+Date.now().toString(36).slice(-3);
+  const q={...JSON.parse(JSON.stringify(p)),id,status:"draft",example:false,title:p.title+" · round 2",mode:"list",slots:top.map(s=>({id:s.id})),closed:false,final:null,needsRunoff:false,flexRound:false,
+    submitted:{},dismissed:{},flex:{},parent:p.id,deadline:addDays(TODAY,5)};
+  const ans={};p.invitees.forEach(x=>{ans[x]={};top.forEach(s=>{const a=(p.answers[x]||{})[s.id];if(a)ans[x][s.id]=a})});q.answers=ans;
+  q.tokens={};q.invitees.forEach(x=>q.tokens[x]=token());
+  S.polls[id]=q;S.order.unshift(id);resetTabs();S.route={v:"poll",id};draft=null;save();render();window.scrollTo(0,0);toast("Run-off draft ready with the top 3. Check it, then send.");}
+
+function setCell(sid,v){if(!draft)return;const nv=v||"";if(nv)draft.answers[sid]=nv;else delete draft.answers[sid];
+  const el=document.querySelector(`[data-cell="${sid}"]`);if(el){el.dataset.a=nv;el.querySelector(".mk").textContent=nv?GLY[nv]:"";}}
+function cycleGroup(ids){if(!ids.length)return;const nv=NEXT[draft.answers[ids[0]]||""];ids.forEach(s=>setCell(s,nv));fills={};render();}
+function toggleFill(p,k){if(fills[k]){fills[k].forEach(([s,prev,nv])=>{if((draft.answers[s]||"")===nv)setCell(s,prev)});delete fills[k];render();return}
+  const ids=slotIds(p).filter(s=>k==="hl"?p.highlight.includes(dowOf(s.slice(0,10))):!draft.answers[s]);const nv=k==="hl"?"y":"n";const ch=[];
+  ids.forEach(s=>{const prev=draft.answers[s]||"";if(prev!==nv){ch.push([s,prev,nv]);setCell(s,nv)}});fills[k]=ch;render();}
+function restoreFocus(id,pos){const el=document.getElementById(id);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-act],[data-pick]");if(!t)return;
+  if(t.dataset.pick){selCell=selCell===t.dataset.pick?null:t.dataset.pick;render();return}
+  const a=t.dataset.act;const p=curPoll();
+  if(previewing()&&(a==="save"||a==="flex"||a==="dismiss")){toast("This is a preview. Nothing is saved.");return}
+  switch(a){
+    case "tab":{const v=t.dataset.v;if(orgTab==="preview"&&(v!=="preview"||previewAs)){if(v==="preview"){previewAs=null;draft=null;fills={}}else resetTabs()}
+      if(v==="preview"&&orgTab!=="preview"){stash={draft,fills};draft=null;fills={}}orgTab=v;selCell=null;render();window.scrollTo(0,0);break}
+    case "preview-as":previewAs=t.dataset.v;draft=null;fills={};selCell=null;render();window.scrollTo(0,0);break;
+    case "go-decide":{const d=document.getElementById("decide");if(d){d.scrollIntoView({block:"start"});const f=document.getElementById("final-pick");f&&f.focus({preventScroll:true})}break}
+    case "guest-back":S.viewer=S.organizer;S.route={v:"booking"};bookState={sel:null,done:null};save();render();window.scrollTo(0,0);break;
+    case "go-list":S.route={v:"list"};save();render();window.scrollTo(0,0);break;
+    case "go-create":S.route={v:"create"};S.setup=S.setup||newSetup();save();render();window.scrollTo(0,0);if(GC.state==="ready")gcalLoadMonth(S.setup.month);break;
+    case "go-booking":S.route={v:"booking"};save();render();window.scrollTo(0,0);break;
+    case "open-poll":resetTabs();S.route={v:"poll",id:t.dataset.id};selCell=null;draft=null;sendOpen=false;save();render();window.scrollTo(0,0);break;
+    case "dup":S.setup=setupFromPoll(S.polls[t.dataset.id],false);S.route={v:"create"};save();render();window.scrollTo(0,0);toast("Copied. Pick the new dates in step 3.");break;
+    case "edit-setup":S.setup=setupFromPoll(p,true);S.route={v:"create"};save();render();window.scrollTo(0,0);break;
+    case "setup-blank":S.setup=newSetup();save();render();break;
+    case "send-open":sendOpen=!sendOpen;render();break;
+    case "send":p.status="sent";sendOpen=false;save();render();window.scrollTo(0,0);toast("Invitations sent (in this prototype nothing is actually e-mailed).");break;
+    case "fill":toggleFill(p,t.dataset.k);break;
+    case "vote-dow":{const ids=slotIds(p).filter(s=>s.slice(0,7)===t.dataset.m&&dowOf(s)===+t.dataset.v);cycleGroup(ids);break}
+    case "vote-col":cycleGroup(slotIds(p).filter(s=>s.slice(11)===t.dataset.h));break;
+    case "vote-row":cycleGroup(slotIds(p).filter(s=>s.slice(0,10)===t.dataset.d));break;
+    case "set-one":{const cur=draft.answers[t.dataset.sid];if(cur===t.dataset.v)delete draft.answers[t.dataset.sid];else draft.answers[t.dataset.sid]=t.dataset.v;render();break}
+    case "save":commit(p,S.viewer,draft.answers);break;
+    case "discard":draft=null;fills={};render();break;
+    case "flex":{const na=JSON.parse(JSON.stringify(p.answers[S.viewer]));na[t.dataset.sid]="m";commit(p,S.viewer,na);break}
+    case "dismiss":p.dismissed[S.viewer]=p.dismissed[S.viewer]||{};p.dismissed[S.viewer][t.dataset.sid]=true;save();persist(p,S.viewer);render();toast("Understood. We won't ask about that one again.");break;
+    case "toggle-rank":openRank[t.dataset.sid]=!openRank[t.dataset.sid];render();break;
+    case "flex-round":p.flexRound=!p.flexRound;save();render();toast(p.flexRound?"Flexibility round started. People who answered now see where their answer decides the most.":"Flexibility round turned off.");break;
+    case "close":{const v=document.getElementById("final-pick").value;if(LIVE){liveUpdate(p,{closed:true,final:v},`Decided: ${slotLabel(p,v)}. Everyone sees it now.`);break}p.closed=true;p.final=v;save();render();window.scrollTo(0,0);toast(`Decided: ${slotLabel(p,v)}. Everyone sees it now.`);break}
+    case "reopen":if(LIVE){liveUpdate(p,{closed:false,final:null},"Voting is open again.");break}p.closed=false;p.final=null;save();render();break;
+    case "runoff":startRunoff(p);break;
+    case "copy":{const el=document.getElementById(t.dataset.target);const txt=el.textContent;
+      const sel=()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Link selected. Copy it with your device's copy command.")};
+      try{navigator.clipboard.writeText(txt).then(()=>toast("Link copied."),sel)}catch(x){sel()}break}
+    case "admin":S.adminOpen=!S.adminOpen;save();renderAdmin();break;
+    case "reset":{const keepShow=S.gcalShow;S=seed();S.gcalShow=keepShow;S.adminOpen=true;draft=null;selCell=null;fills={};bookState={sel:null,done:null};save();render();toast("Example data reset.");break}
+    case "sim-deadline":{const q=p||S.polls.xmas;if(q.closed){toast("This poll is already closed.");break}const top=ranking(q)[0];
+      resetTabs();S.route={v:"poll",id:q.id};S.viewer=S.organizer;
+      if(top&&top.reqOk&&!(top.keyAll&&top.keyOk<top.keyAll)){q.closed=true;q.final=top.id;toast(`Voting stopped. Best date: ${slotLabel(q,top.id)}. Confirm it or reopen.`)}
+      else{q.needsRunoff=true;toast("Voting stopped. The best date misses the host, a must-attend or a key person, so a run-off is ready to prepare.")}
+      save();render();break}
+    case "m-prev":case "m-next":{const[y,m]=S.setup.month.split("-").map(Number);const d=new Date(y,m-1+(a==="m-next"?1:-1),1);S.setup.month=iso(d).slice(0,7);save();render();gcalLoadMonth(S.setup.month);break}
+    case "m-today":S.setup.month=TODAY.slice(0,7);save();render();gcalLoadMonth(S.setup.month);break;
+    case "pick-dow":{const st=S.setup;const[y,m]=st.month.split("-").map(Number);const n=new Date(y,m,0).getDate();const ds=[];for(let d=1;d<=n;d++){const s=`${st.month}-${pad(d)}`;if(s>=TODAY&&dowOf(s)===+t.dataset.v)ds.push(s)}
+      const allOn=ds.length&&ds.every(s=>st.dates.includes(s));ds.forEach(s=>setupPick(s,!allOn));st.err="";save();render();break}
+    case "pick-clear":S.setup.dates=[];save();render();break;
+    case "pick-remove":setupPick(t.dataset.v,false);save();render();break;
+    case "s-mode":S.setup.mode=t.dataset.v;save();render();break;
+    case "ex-col":case "ex-row":{const st=S.setup;const ids=[];st.dates.forEach(d=>{boxStarts(mins(st.h1),mins(st.h2)).forEach(x=>{const id=`${d}T${hm(x)}`;if(a==="ex-col"?id.slice(11)===t.dataset.h:d===t.dataset.d)ids.push(id)})});
+      const turnOff=ids.some(id=>!st.excl[id]);ids.forEach(id=>{if(turnOff)st.excl[id]=true;else delete st.excl[id]});save();render();break}
+    case "fmt":wrapSel(t.dataset.v);break;
+    case "gcal":gcalConnect();break;
+    case "gmail":gmailSearch(S.setup.q.trim());break;
+    case "p-add":{const st=S.setup;const inp=document.getElementById("s-add");if(inp)st.q=inp.value;
+      const parts=st.q.split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);st.addMsgErr=false;
+      if(!parts.length){st.addMsg="Type a name or an e-mail first.";st.addMsgErr=true;save();render();restoreFocus("s-add",0);break}
+      const res={added:[],exists:[],org:[],typos:[]};
+      parts.forEach(part=>{const m=part.match(/^(.*?)\s*<([^>]+)>$/);const r=m?addPerson(m[1],m[2]):addPerson(part,"");
+        if(r.s==="added")res.added.push(r.name);else if(r.s==="exists")res.exists.push(r.name);else if(r.s==="organiser")res.org.push(r.name);else if(r.s==="typo")res.typos.push(r.typo)});
+      st.typos=st.typos.concat(res.typos);
+      const msg=[];if(res.added.length)msg.push(`Added ${listNames(res.added)}.`);if(res.exists.length)msg.push(`${listNames(res.exists)} ${res.exists.length>1?"were":"was"} already on the list.`);
+      if(res.org.length)msg.push(`${res.org[0]} is you, the organiser, and is already in. For a different ${res.org[0]}, add the surname.`);
+      if(res.typos.length)msg.push(`${res.typos.length} name${res.typos.length>1?"s":""} to check below.`);
+      st.addMsg=msg.join(" ");st.q="";GM.state="idle";st.err="";save();render();restoreFocus("s-add",0);break}
+    case "p-pick":{const r=addPerson(t.dataset.name,t.dataset.email,true);S.setup.addMsg=r.s==="added"?`Added ${r.name}.`:`${r.name} was already on the list.`;S.setup.addMsgErr=false;S.setup.q="";GM.state="idle";save();render();restoreFocus("s-add",0);break}
+    case "typo-use":{const ty=S.setup.typos.shift();addPerson(ty.match.name,ty.match.email||ty.email,true);S.setup.addMsg=`Added ${ty.match.name}.`;S.setup.addMsgErr=false;save();render();break}
+    case "typo-new":{const ty=S.setup.typos.shift();addPerson(ty.typed,ty.email,true);S.setup.addMsg=`Added ${ty.typed} as a new person.`;S.setup.addMsgErr=false;save();render();break}
+    case "typo-cancel":{const ty=S.setup.typos.shift();S.setup.addMsg=`Skipped “${ty.typed}”.`;S.setup.addMsgErr=false;save();render();break}
+    case "p-example":S.setup.people=PEOPLE.filter(x=>x[0]!=="martin").map(([id,n],i)=>({name:n,email:exMail(id),role:id==="tomas"?"host":["jana","petr","lucie","klara"].includes(id)?"key":id==="filip"?"opt":"reg",seq:0}));save();render();break;
+    case "p-del":S.setup.people.splice(+t.dataset.i,1);save();render();break;
+    case "b-dur":S.booking.duration=+t.dataset.v;S.booking.removed={};save();render();break;
+    case "b-buf":S.booking.buffer=+t.dataset.v;S.booking.removed={};save();render();break;
+    case "b-toggle":{const k=t.dataset.key;S.booking.removed[k]=!S.booking.removed[k];save();render();break}
+    case "b-add":{const d=document.getElementById("x-date").value,tm=document.getElementById("x-time").value,er=document.getElementById("x-err");
+      if(!d||!tm){er.textContent="Pick a day and a start time.";er.hidden=false;break}
+      if(d<S.booking.start||d>S.booking.end){er.textContent=`Pick a day between ${fmtDay(S.booking.start)} and ${fmtDay(S.booking.end)}.`;er.hidden=false;break}
+      if(!S.booking.days.includes(dowOf(d))){S.booking.days.push(dowOf(d))}
+      S.booking.extra.push({date:d,time:tm});save();render();toast(`Added ${fmtDay(d)}, ${tm}.`);break}
+    case "b-guest":S.viewer="guest";bookState={sel:null,done:null};save();render();window.scrollTo(0,0);break;
+    case "g-pick":bookState.sel=bookState.sel===t.dataset.key?null:t.dataset.key;render();setTimeout(()=>{const n=document.getElementById("g-name");n&&n.focus()},0);break;
+    case "g-again":bookState={sel:null,done:null};render();break;
+    default:if(LIVE)liveAction(a,t,p);
+  }
+});
+document.addEventListener("change",e=>{const t=e.target;const a=t.dataset.act;
+  if(a==="live-role"){liveAdmin({action:"admin.person",poll:curPoll().id,pid:t.dataset.pid,role:t.value},"Role saved.");return}
+  if(a==="s-from"){S.setup=t.value?setupFromPoll(S.polls[t.value],false):newSetup();save();render();if(t.value)toast("Copied. Pick the new dates in step 3.")}
+  else if(a==="s-time"){const st=S.setup;const cur=st[t.dataset.k]||"09:00";st[t.dataset.k]=t.dataset.part==="h"?`${t.value}:${cur.slice(3,5)}`:`${cur.slice(0,2)}:${t.value}`;st.err="";save();render()}
+  else if(a==="s-hl"){const v=+t.value;const st=S.setup;st.highlight=t.checked?[...new Set([...st.highlight,v])]:st.highlight.filter(x=>x!==v);save();render()}
+  else if(a==="s-auto"){S.setup.autoClose=t.checked;save()}
+  else if(a==="p-role"){S.setup.people[+t.dataset.i].role=t.value;flashNames.add(S.setup.people[+t.dataset.i].name);save();render()}
+  else if(a==="gcal-show"){S.gcalShow[t.value]=t.checked;save();render();gcalLoadMonth(S.setup.month)}
+  else if(t.dataset.pf){render()}
+  else if(a==="b-day"){const v=+t.value;const b=S.booking;b.days=t.checked?[...new Set([...b.days,v])]:b.days.filter(x=>x!==v);save();render()}
+  else if(a==="b-cal"){S.booking.calendars.find(c=>c.id===t.value).check=t.checked;save();render()}
+  else if(a==="b-field"){const b=S.booking;const map={"b-from":"from","b-to":"to","b-start":"start","b-end":"end","b-save":"saveTo"};
+    if(t.value){b[map[t.id]]=t.value;if(b.end<b.start)b.end=b.start;if(b.to<=b.from)b.to=toHM(toMin(b.from)+b.duration)}save();render()}
+});
+document.addEventListener("input",e=>{const t=e.target;const k=t.dataset&&t.dataset.setup;
+  if(k){S.setup[k]=t.value;save();if(k==="q"||k==="note"){const pos=t.selectionStart;if(k==="q"){S.setup.addMsg=""}render();restoreFocus(t.id,pos)}return}
+  if(t.dataset&&t.dataset.pf){S.setup.people[+t.dataset.i][t.dataset.pf]=t.value.trim();save()}});
+document.addEventListener("keydown",e=>{if(e.target.id==="s-add"&&e.key==="Enter"){e.preventDefault();document.querySelector('[data-act="p-add"]').click()}});
+document.addEventListener("submit",e=>{e.preventDefault();
+  if(e.target.id==="create-form")createPoll();
+  if(e.target.id==="join-form")liveJoin(e.target);
+  if(e.target.id==="g-form"){const n=document.getElementById("g-name").value.trim(),m=document.getElementById("g-mail").value.trim(),er=document.getElementById("g-err");
+    if(!n){er.textContent="Enter your name.";er.hidden=false;return}if(!okMail(m)){er.textContent="Enter a valid e-mail, e.g. name@company.eu.";er.hidden=false;return}
+    const k=bookState.sel;const rec={key:k,date:k.slice(0,10),time:k.slice(11),name:n,mail:m,note:document.getElementById("g-note").value};
+    S.bookings.push(rec);bookState={sel:null,done:rec};save();render();window.scrollTo(0,0);}
+});
+/* hour exclusions in setup: tap, or drag */
+let exing=false,exOff=true,lastEx=null;
+function setEx(id,off){const st=S.setup;if(off)st.excl[id]=true;else delete st.excl[id];const el=document.querySelector(`[data-exh="${id}"]`);if(el){el.classList.toggle("offh",off);el.classList.toggle("on",!off);el.setAttribute("aria-pressed",!off)}}
+document.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-exh]");if(!c)return;e.preventDefault();exing=true;lastEx=c.dataset.exh;exOff=!S.setup.excl[lastEx];setEx(lastEx,exOff)});
+document.addEventListener("pointermove",e=>{if(!exing)return;const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest("[data-exh]");if(c&&c.dataset.exh!==lastEx){lastEx=c.dataset.exh;setEx(lastEx,exOff)}});
+const endEx=()=>{if(exing){exing=false;save();render()}};document.addEventListener("pointerup",endEx);document.addEventListener("pointercancel",endEx);
+document.addEventListener("keydown",e=>{const c=e.target.closest&&e.target.closest("[data-exh]");if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();const id=c.dataset.exh;setEx(id,!S.setup.excl[id]);save();render();const n=document.querySelector(`[data-exh="${id}"]`);n&&n.focus()}});
+/* date picking in setup: tap, or drag across dates */
+let picking=false,pickOn=true,lastPick=null;
+document.addEventListener("pointerdown",e=>{const pc=e.target.closest("[data-pickdate]");if(!pc)return;e.preventDefault();picking=true;lastPick=pc.dataset.pickdate;pickOn=!S.setup.dates.includes(lastPick);setupPick(lastPick,pickOn)});
+document.addEventListener("pointermove",e=>{if(!picking)return;const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest("[data-pickdate]");if(c&&c.dataset.pickdate!==lastPick){lastPick=c.dataset.pickdate;setupPick(lastPick,pickOn)}});
+const endPick=()=>{if(picking){picking=false;S.setup.err="";save();render()}};
+document.addEventListener("pointerup",endPick);document.addEventListener("pointercancel",endPick);
+/* voting: tap cycles the answer; drag gives more boxes the same answer */
+let painting=false,paintVal="",lastCell=null;
+document.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-cell]");if(!c)return;e.preventDefault();
+  paintVal=NEXT[c.dataset.a||""];painting=true;lastCell=c.dataset.cell;setCell(lastCell,paintVal);});
+document.addEventListener("pointermove",e=>{if(!painting)return;const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest("[data-cell]");
+  if(c&&c.dataset.cell!==lastCell){lastCell=c.dataset.cell;setCell(lastCell,paintVal)}});
+const endPaint=()=>{if(painting){painting=false;fills={};render()}};
+document.addEventListener("pointerup",endPaint);document.addEventListener("pointercancel",endPaint);
+document.addEventListener("click",e=>{if(e.target.closest("[data-cell],[data-pickdate],[data-exh]"))e.preventDefault()},true);
+document.addEventListener("keydown",e=>{const c=e.target.closest&&e.target.closest("[data-cell]");if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();const id=c.dataset.cell;setCell(id,NEXT[c.dataset.a||""]);render();const n=document.querySelector(`[data-cell="${id}"]`);n&&n.focus()}});
+document.addEventListener("keydown",e=>{const c=e.target.closest&&e.target.closest("[data-pickdate]");if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();const s=c.dataset.pickdate;setupPick(s,!S.setup.dates.includes(s));save();render();const n=document.querySelector(`[data-pickdate="${s}"]`);n&&n.focus()}});
+
+/* ---------- Verze B: server (Apps Script) ---------- */
+function lsLoad(){try{LS={tokens:{},admin:"",setup:null,...JSON.parse(localStorage.getItem(LKEY)||"{}")}}catch(e){}}
+function lsSave(){try{localStorage.setItem(LKEY,JSON.stringify(LS))}catch(e){}}
+function liveInit(){lsLoad();
+  const h=new URLSearchParams(location.hash.slice(1));
+  if(h.get("k")&&LPOLL)LS.tokens[LPOLL]=h.get("k");
+  if(h.get("admin"))LS.admin=h.get("admin");
+  if(h.get("k")||h.get("admin"))try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}   /* secrets never stay in the address bar */
+  lsSave();
+  const d=seed();
+  S={...d,people:{},contacts:[],polls:{},order:[],viewer:"__anon__",organizer:"__org__",route:LPOLL?{v:"poll",id:LPOLL}:{v:"list"},adminOpen:false,
+    setup:{...newSetup(),...(LS.setup||{})}};
+  setTimeout(liveLoad,0);}
+const isOrg=()=>!!LS.admin;
+async function api(body){
+  let r;try{r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})}catch(e){throw new Error("offline")}
+  if(!r.ok)throw new Error("http "+r.status);return r.json();}
+function liveErr(code){return({no_poll:"This poll doesn't exist (any more). Check the link you got.",closed:"Voting on this poll has stopped.",not_allowed:"This link doesn't let you change that.",
+  name_required:"Enter your name.",email_invalid:"Enter a valid e-mail, e.g. name@company.eu.",consent_required:"Please tick the box to agree, otherwise we can't store your answers.",
+  busy:"The server is busy. Try again in a moment.",offline:"Can't reach the server. Check your connection and try again."})[code]||`Something went wrong (${code}). Try again in a moment.`}
+function applyPoll(r){const sp=r.poll;
+  const p={...sp,status:"sent",example:false,invitees:[],answers:{},submitted:{},dismissed:{},flex:{},tokens:{},needsRunoff:false,flexRound:false,parent:null,
+    highlight:sp.highlight||[],excl:sp.excl||{},from:sp.dates[0],to:sp.dates[sp.dates.length-1],hours:null,created:TODAY};
+  r.people.forEach(x=>{S.people[x.pid]={id:x.pid,name:x.name,email:""};p.invitees.push(x.pid);p.answers[x.pid]=x.answers||{};p.submitted[x.pid]=!!x.submitted;p.dismissed[x.pid]=x.dismissed||{};p.flex[x.pid]=x.flex||0});
+  S.polls[sp.id]=p;if(!S.order.includes(sp.id))S.order.push(sp.id);LV.me[sp.id]=r.me||null;LV.org=sp.org||"";return p;}
+/* who is who: the organiser votes like anyone once joined; until then "__org__" stands for them */
+function liveRoles(){const id=S.route.v==="poll"?S.route.id:null;const mine=id?LV.me[id]:null;
+  S.people.__org__={id:"__org__",name:(id&&S.polls[id]&&S.polls[id].org)||"the organiser",email:""};
+  if(isOrg()){S.organizer=mine||"__org__";S.viewer=S.organizer}else{S.organizer="__org__";S.viewer=mine||"__anon__"}}
+async function liveLoad(){LV.loading=true;LV.err="";render();
+  try{if(isOrg()){const l=await api({action:"admin.list",key:LS.admin});
+      if(!l.ok){if(l.error==="not_allowed"){LS.admin="";lsSave();LV.err="This organiser link isn't valid (any more)."}else LV.err=liveErr(l.error)}
+      else{S.order=[];for(const x of l.polls){const r=await api({action:"get",poll:x.id,token:LS.tokens[x.id]||""});if(r.ok)applyPoll(r)}}}
+    if(LPOLL&&!S.polls[LPOLL]){const r=await api({action:"get",poll:LPOLL,token:LS.tokens[LPOLL]||""});if(r.ok)applyPoll(r);else LV.err=liveErr(r.error)}}
+  catch(e){LV.err=liveErr(e.message==="offline"?"offline":"server")}
+  LV.loading=false;render();}
+async function liveRefresh(id){if(!id||draftChanged())return;try{const r=await api({action:"get",poll:id,token:LS.tokens[id]||""});if(r.ok){applyPoll(r);render()}}catch(e){}}
+window.addEventListener("hashchange",()=>{if(LIVE&&/(^|[#&])(k|admin)=/.test(location.hash))location.reload()});   /* opening the e-mailed link in a tab that already shows the poll */
+document.addEventListener("visibilitychange",()=>{if(LIVE&&document.visibilityState==="visible"&&S.route.v==="poll")liveRefresh(S.route.id)});
+/* screens that replace the whole page: loading, errors, landing, joining (Q38) */
+function liveScreen(){liveRoles();let h="";
+  const head=`<header class="top"><div class="brand">Team Meeting Planner</div></header>`;
+  if(LV.loading)h=head+`<p class="muted" role="status">Loading…</p>`;
+  else if(LV.err)h=head+`<div class="banner warn" role="alert"><b>${esc(LV.err)}</b><div><button class="btn small" data-act="live-retry">Try again</button></div></div>`;
+  else if(!isOrg()&&!LPOLL)h=head+`<div class="card"><h1>Team Meeting Planner</h1><p>Open the link you got from the organiser to see the poll.</p></div>`;
+  else if(!isOrg()&&S.viewer==="__anon__"){const p=S.polls[LPOLL];h=head+`<div class="stack">${pollInfo(p,true)}${p.closed?(p.final?finalBanner(p):`<div class="banner info"><b>Voting on this poll has stopped.</b></div>`):renderJoin(p)}</div>`}
+  else return false;
+  $app.innerHTML=h+liveFooter();renderAdmin();renderSaveBar();return true;}
+function renderJoin(p){const m=LV.msg;
+  return `<section class="card" aria-labelledby="join-h"><h2 id="join-h">Join this poll</h2>
+    ${m?`<div class="banner ${m.kind}" role="status"><b>${esc(m.title)}</b>${m.text?`<p class="small">${esc(m.text)}</p>`:""}</div>`:""}
+    <form id="join-form" class="stack" style="gap:12px" novalidate>
+      <label class="f" for="j-name">Your name<input type="text" id="j-name" autocomplete="name" maxlength="80"></label>
+      <label class="f" for="j-mail">Your e-mail<input type="email" id="j-mail" autocomplete="email" maxlength="200"></label>
+      <label class="check" style="align-items:flex-start"><input type="checkbox" id="j-ok"> <span class="small">I agree that my name, e-mail and answers are stored to plan this meeting. <a href="privacy.html" target="_blank" rel="noopener">How we handle your data</a></span></label>
+      <p class="small muted">Everyone in this poll sees your name and answers. Your e-mail stays private: we only use it to send you your personal link, so you can change your answers later from any device. Already joined on another device? Enter the same e-mail and we'll send the link again.</p>
+      <p class="small" id="j-err" role="alert" style="color:var(--no)" hidden></p>
+      <div><button class="btn primary" type="submit"${LV.busy?" disabled":""}>Join and add my availability</button></div></form></section>`;}
+async function liveJoin(form){const name=form.querySelector("#j-name").value.trim(),email=form.querySelector("#j-mail").value.trim(),ok=form.querySelector("#j-ok").checked,er=form.querySelector("#j-err");
+  const bad=m=>{er.textContent=m;er.hidden=false};
+  if(!name)return bad(liveErr("name_required"));if(!okMail(email))return bad(liveErr("email_invalid"));if(!ok)return bad(liveErr("consent_required"));
+  const id=S.route.id||LPOLL;LV.busy=true;
+  try{const r=await api({action:"join",poll:id,name,email,consent:true});LV.busy=false;
+    if(!r.ok){bad(liveErr(r.error));return}
+    if(r.status==="link_sent"){LV.msg={kind:"info",title:"This e-mail is already in the poll.",text:r.mailed===false?"We couldn't send the e-mail right now. The organiser has been told; try again later.":"We've sent your personal link to it. Open it from your mailbox to change your answers here."};render();return}
+    LS.tokens[id]=r.token;lsSave();LV.msg=null;delete S.polls[id];
+    const g=await api({action:"get",poll:id,token:r.token});if(g.ok)applyPoll(g);render();window.scrollTo(0,0);
+    toast(r.mailed===false?"You're in. We couldn't e-mail your link right now; this device remembers you.":"You're in. We've e-mailed you your personal link.");}
+  catch(e){LV.busy=false;bad(liveErr("offline"))}}
+async function persist(p,pid){if(!LIVE)return;const id=p.id;
+  try{const r=await api({action:"save",poll:id,token:LS.tokens[id]||"",answers:p.answers[pid]||{},dismissed:p.dismissed[pid]||{},flex:p.flex[pid]||0});
+    if(!r.ok){toast(liveErr(r.error)+" Your last change wasn't saved.");delete S.polls[id];await liveRefresh0(id);return}
+    applyPoll({poll:{...p},people:r.people,me:LV.me[id]});render();}
+  catch(e){toast(liveErr("offline")+" Your last change wasn't saved.")}}
+async function liveRefresh0(id){try{const r=await api({action:"get",poll:id,token:LS.tokens[id]||""});if(r.ok)applyPoll(r)}catch(e){}render()}
+async function liveAdmin(body,okMsg){try{const r=await api({...body,key:LS.admin});if(!r.ok){toast(liveErr(r.error));return null}
+    if(r.poll&&r.people)applyPoll({poll:r.poll,people:r.people,me:LV.me[r.poll.id]});else if(r.people){const p=curPoll();applyPoll({poll:{...p},people:r.people,me:LV.me[p.id]})}
+    render();if(okMsg)toast(okMsg);return r}catch(e){toast(liveErr("offline"));return null}}
+function liveUpdate(p,fields,okMsg){window.scrollTo(0,0);return liveAdmin({action:"admin.update",poll:p.id,fields},okMsg)}
+function liveSetupBody(){const st=S.setup;return{org:(st.org||"").trim(),title:st.title.trim(),note:st.note.trim(),map:st.map.trim(),mode:st.mode,dates:st.dates.slice().sort(),
+  win:st.mode==="hour"?[mins(st.h1),mins(st.h2)]:null,excl:st.mode==="hour"?{...st.excl}:{},highlight:st.highlight.slice(),deadline:st.deadline||addDays(TODAY,7),autoClose:st.autoClose}}
+async function liveCreate(){const st=S.setup;LV.busy=true;render();const body=liveSetupBody();
+  const r=st.editingId?await liveAdmin({action:"admin.update",poll:st.editingId,fields:{setup:body}}):await liveAdmin({action:"admin.create",poll:body});LV.busy=false;
+  if(!r){render();return}
+  const id=r.poll.id;if(!r.people)applyPoll({poll:r.poll,people:[],me:null});
+  S.setup=newSetup();save();resetTabs();S.route={v:"poll",id};draft=null;render();window.scrollTo(0,0);
+  toast(st.editingId?"Changes saved.":"Poll created. Copy the link below and send it to the team.");}
+function liveLink(p){return location.origin+location.pathname+"?p="+encodeURIComponent(p.id)}
+function liveShareBox(p){return `<div class="stack" style="gap:6px"><span class="eyebrow">Link for the team</span><div class="linkbox"><code id="lk-share">${esc(liveLink(p))}</code><button class="btn small" data-act="copy" data-target="lk-share">Copy</button></div>
+  <p class="small muted">Send it by e-mail or chat. Each person joins with their name and e-mail and can change only their own answers.</p></div>`}
+function liveManage(p,x){return `<label class="sr" for="rl-${x}">Role of ${esc(nameOf(x))}</label><select id="rl-${x}" data-act="live-role" data-pid="${x}" style="width:auto;min-height:36px">${ROLES.map(([v,l])=>`<option value="${v}" ${role(p,x)===v?"selected":""}>${l}</option>`).join("")}</select><button class="btn small" data-act="live-hide" data-pid="${x}">Remove</button>`}
+function liveAction(a,t,p){
+  if(a==="live-retry"){LV.err="";liveLoad()}
+  else if(a==="live-hide"){if(confirm(`Remove ${nameOf(t.dataset.pid)} from this poll? Their answers stop counting and nobody sees them.`))liveAdmin({action:"admin.person",poll:p.id,pid:t.dataset.pid,hidden:true},"Removed.")}
+  else if(a==="live-join-me"){LV.msg=null;render()}}
+function liveFooter(){return `<footer class="small" style="margin-top:32px;padding-top:12px;border-top:1px solid var(--line)"><a href="privacy.html" style="color:var(--muted)">Privacy</a></footer>`}
+
+render();
+})();
 </script>
-</body>
-</html>
+</body></html>
