@@ -435,7 +435,7 @@ function renderPoll(p){
   if(orgTab==="results"){
     h+=pollInfo(p,false);
     if(p.closed&&p.final)h+=finalBanner(p);
-    h+=renderGroupCalendar(p)+renderRanking(p)+renderPeople(p)+(LIVE&&p.final?"":renderOrgTools(p));   /* decided: only results, who voted how, Reopen (Martin, 14. 11.) */
+    h+=LIVE&&p.closed&&p.final?decidedView(p):renderGroupCalendar(p)+renderRanking(p)+renderPeople(p)+renderOrgTools(p);   /* decided: only results, who voted how, Reopen (Martin, 14. 11.) */
   }else if(orgTab==="mine"&&LIVE&&!p.invitees.includes(S.organizer)){
     h+=`<div class="banner info"><b>To vote yourself, join like everyone else.</b><p class="small">Use your own name and e-mail. Your answers then count the same as anyone's.</p></div>`+(p.closed?"":renderJoin(p));
   }else if(orgTab==="mine"){
@@ -485,6 +485,7 @@ function renderVoter(p){
           <div class="row"><button class="btn small primary" data-act="flex" data-sid="${n.sid}"${ro}>I can make it work</button><button class="btn small" data-act="dismiss" data-sid="${n.sid}"${ro}>I really can't</button></div></div>`;});
       h+=`</div>`;}}
   if(invited&&!p.closed)h+=renderEditor(p);
+  if(LIVE&&p.closed&&p.final)return h+decidedView(p);
   h+=renderGroupCalendar(p);
   h+=renderRanking(p);
   h+=renderPeople(p);
@@ -561,7 +562,7 @@ function renderRanking(p){
   const c=liveCtx(p);
   if(!counted(p).some(x=>c.submitted[x]))return `<section class="card"><h2>Best options so far</h2><p class="muted">The ranking appears as soon as the first person answers.</p></section>`;
   const r=ranking(p,c).slice(0,p.mode==="list"?p.slots.length:5);const n=counted(p).length;
-  let h=`<section class="card" aria-labelledby="rk-h"><div class="between"><h2 id="rk-h">${p.closed&&p.final?"Results":"Best options so far"}</h2><span class="small muted">${viewerIsOrg()?"Host and must-attend first, then key people, then everyone":"Dates the host can make come first"}</span></div><div class="rank">`;
+  let h=`<section class="card" aria-labelledby="rk-h"><div class="between"><h2 id="rk-h">${p.closed&&p.final?"All options":"Best options so far"}</h2><span class="small muted">${viewerIsOrg()?"Host and must-attend first, then key people, then everyone":"Dates the host can make come first"}</span></div><div class="rank">`;
   r.forEach((s,i)=>{const open=!!openRank[s.id];const yc=s.y.filter(x=>role(p,x)!=="opt").length,mc=s.m.filter(x=>role(p,x)!=="opt").length,nc=s.n.filter(x=>role(p,x)!=="opt").length;
     h+=`<div class="ritem${i===0?" top":""}${open?" open":""}"><div class="rhead"><span class="rname">${i+1}. ${esc(slotLabel(p,s.id))}</span>
       <button class="btn small" data-act="toggle-rank" data-sid="${s.id}" aria-expanded="${open}">${open?"Hide":"Who"} <span class="chevron" aria-hidden="true">▾</span></button></div>
@@ -1123,6 +1124,9 @@ async function liveRunoff(p){const top=ranking(p).slice(0,3).map(s=>s.id);if(top
   const g=await liveGet(r.poll.id);if(g.ok)applyPoll(g);
   resetTabs();S.route={v:"poll",id:r.poll.id};draft=null;render();window.scrollTo(0,0);
   toast("Round 2 is ready. Copy the link or e-mail everyone their personal link.");}
+/* a decided poll: who can come on the chosen date first, everything else folded away (Martin, 14. 11. 2026) */
+function decidedView(p){return `<section class="card" aria-labelledby="res-h"><h2 id="res-h">Results</h2>${whoBlock(p,p.final,liveCtx(p))}
+  <details><summary class="linkbtn" style="display:inline-block">All options and how everyone voted</summary><div class="stack" style="margin-top:12px">${renderGroupCalendar(p)}${renderRanking(p)}${renderPeople(p)}</div></details></section>`}
 function nextBanner(p){if(!p.next)return "";const q=S.polls[p.next];
   return `<div class="banner info"><b>Voting continues in round 2${q?`: only ${(q.slots||[]).length} options left`:""}.</b><div><a href="${esc(location.pathname+"?p="+encodeURIComponent(p.next))}">Open round 2</a></div></div>`}
 function liveFooter(){return `<footer class="small" style="margin-top:32px;padding-top:12px;border-top:1px solid var(--line)"><a href="privacy.html" style="color:var(--muted)">Privacy</a></footer>`}
