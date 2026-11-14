@@ -1076,14 +1076,15 @@ function renderJoin(p){const m=LV.msg;
 async function liveJoin(form){const name=form.querySelector("#j-name").value.trim(),email=form.querySelector("#j-mail").value.trim(),ok=form.querySelector("#j-ok").checked,er=form.querySelector("#j-err");
   const bad=m=>{er.textContent=m;er.hidden=false};
   if(!name)return bad(liveErr("name_required"));if(!okMail(email))return bad(liveErr("email_invalid"));if(!ok)return bad(liveErr("consent_required"));
-  const id=S.route.id||LPOLL;LV.busy=true;
+  if(LV.busy)return;   /* one join at a time: a second tap while the server answers sent a second e-mail */
+  const id=S.route.id||LPOLL;LV.busy=true;const btn=form.querySelector("button[type=submit]");if(btn){btn.disabled=true;btn.textContent="Joining…"}
   try{const r=await api({action:"join",poll:id,name,email,consent:true});LV.busy=false;
-    if(!r.ok){bad(liveErr(r.error));return}
+    if(!r.ok){bad(liveErr(r.error));if(btn){btn.disabled=false;btn.textContent="Join and add my availability"}return}
     if(r.status==="link_sent"){LV.msg={kind:"info",title:"This e-mail is already in the poll.",text:r.mailed===false?"We couldn't send the e-mail right now. The organiser has been told; try again later.":"We've sent your personal link to it. Open it from your mailbox to change your answers here."};render();return}
     LS.tokens[id]=r.token;lsSave();LV.msg=null;delete S.polls[id];
     const g=await api({action:"get",poll:id,token:r.token});if(g.ok)applyPoll(g);render();window.scrollTo(0,0);
     toast(r.mailed===false?"You're in. We couldn't e-mail your link right now; this device remembers you.":"You're in. We've e-mailed you your personal link.");}
-  catch(e){LV.busy=false;bad(liveErr("offline"))}}
+  catch(e){LV.busy=false;bad(liveErr("offline"));if(btn){btn.disabled=false;btn.textContent="Join and add my availability"}}}
 async function persist(p,pid){if(!LIVE)return;const id=p.id;
   try{const r=await api({action:"save",poll:id,token:LS.tokens[id]||"",answers:p.answers[pid]||{},dismissed:p.dismissed[pid]||{},flex:p.flex[pid]||0});
     if(!r.ok){toast(liveErr(r.error)+" Your last change wasn't saved.");delete S.polls[id];await liveRefresh0(id);return}
@@ -1096,7 +1097,7 @@ async function liveAdmin(body,okMsg){try{const r=await api({...body,key:LS.admin
 function liveUpdate(p,fields,okMsg){window.scrollTo(0,0);return liveAdmin({action:"admin.update",poll:p.id,fields},okMsg)}
 function liveSetupBody(){const st=S.setup;return{org:(st.org||"").trim(),title:st.title.trim(),note:st.note.trim(),map:st.map.trim(),mode:st.mode,dates:st.dates.slice().sort(),
   win:st.mode==="hour"?[mins(st.h1),mins(st.h2)]:null,excl:st.mode==="hour"?{...st.excl}:{},highlight:st.highlight.slice(),deadline:st.deadline||addDays(TODAY,7),autoClose:st.autoClose}}
-async function liveCreate(){const st=S.setup;LV.busy=true;render();const body=liveSetupBody();
+async function liveCreate(){if(LV.busy)return;const st=S.setup;LV.busy=true;render();const body=liveSetupBody();
   const r=st.editingId?await liveAdmin({action:"admin.update",poll:st.editingId,fields:{setup:body}}):await liveAdmin({action:"admin.create",poll:body});LV.busy=false;
   if(!r){render();return}
   const id=r.poll.id;if(!r.people)applyPoll({poll:r.poll,people:[],me:null});
