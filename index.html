@@ -402,7 +402,7 @@ function renderInner(){
         <button class="navbtn" data-act="go-create" ${S.route.v==="create"?'aria-current="page"':""}>New poll</button>
         <button class="navbtn" data-act="go-list" ${S.route.v==="list"||S.route.v==="poll"?'aria-current="page"':""}>Polls</button>
         ${LIVE?"":`<button class="navbtn" data-act="go-booking" ${S.route.v==="booking"?'aria-current="page"':""}>Book with me</button>`}</nav>`;
-    }else{html+=LIVE?`<span class="tag">You: ${esc(nameOf(v))}</span>`:`<span class="tag">Opened from ${esc(nameOf(v))}'s personal link</span>`}
+    }else{html+=LIVE?`<span class="row"><span class="tag">You: ${esc(nameOf(v))}</span>${LS.admin?`<button class="linkbtn" data-act="live-orgview">Organiser view</button>`:""}</span>`:`<span class="tag">Opened from ${esc(nameOf(v))}'s personal link</span>`}
     html+=`</header>`;
     if(v!==S.organizer&&(S.route.v!=="poll"||!curPoll()||!curPoll().invitees.includes(v))){S.route={v:"poll",id:S.order.find(id=>S.polls[id].invitees.includes(v))||"xmas"}}
     if(S.route.v==="list")html+=renderList();
@@ -1009,7 +1009,8 @@ function lsLoad(){try{LS={tokens:{},admin:"",setup:null,...JSON.parse(localStora
 function lsSave(){try{localStorage.setItem(LKEY,JSON.stringify(LS))}catch(e){}}
 function liveInit(){lsLoad();
   const h=new URLSearchParams(location.hash.slice(1));
-  if(h.get("k")&&LPOLL)LS.tokens[LPOLL]=h.get("k");
+  if(h.get("k")&&LPOLL){LS.tokens[LPOLL]=h.get("k");try{sessionStorage.setItem("mp-voter","1")}catch(e){}}   /* a personal link always opens the voter view, also in the organiser's browser */
+  if(h.get("admin"))try{sessionStorage.removeItem("mp-voter")}catch(e){}
   if(h.get("admin"))LS.admin=h.get("admin");
   if(h.get("k")||h.get("admin"))try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}   /* secrets never stay in the address bar */
   lsSave();
@@ -1017,7 +1018,8 @@ function liveInit(){lsLoad();
   S={...d,people:{},contacts:[],polls:{},order:[],viewer:"__anon__",organizer:"__org__",route:LPOLL?{v:"poll",id:LPOLL}:{v:"list"},adminOpen:false,
     setup:{...newSetup(),...(LS.setup||{})}};
   setTimeout(liveLoad,0);}
-const isOrg=()=>!!LS.admin;
+const asVoter=()=>{try{return sessionStorage.getItem("mp-voter")==="1"}catch(e){return false}};
+const isOrg=()=>!!LS.admin&&!asVoter();
 async function api(body){
   let r;try{r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})}catch(e){throw new Error("offline")}
   if(!r.ok)throw new Error("http "+r.status);return r.json();}
@@ -1110,6 +1112,7 @@ function liveShareBox(p){if(p.next)return nextBanner(p);return `<div class="stac
 function liveManage(p,x){return `<label class="sr" for="rl-${x}">Role of ${esc(nameOf(x))}</label><select id="rl-${x}" data-act="live-role" data-pid="${x}" style="width:auto;min-height:36px">${ROLES.map(([v,l])=>`<option value="${v}" ${role(p,x)===v?"selected":""}>${l}</option>`).join("")}</select><button class="btn small" data-act="live-hide" data-pid="${x}">Remove</button>`}
 function liveAction(a,t,p){
   if(a==="live-retry"){LV.err="";liveLoad()}
+  else if(a==="live-orgview"){try{sessionStorage.removeItem("mp-voter")}catch(e){}location.reload()}
   else if(a==="live-hide"){if(confirm(`Remove ${nameOf(t.dataset.pid)} from this poll? Their answers stop counting and nobody sees them.`))liveAdmin({action:"admin.person",poll:p.id,pid:t.dataset.pid,hidden:true},"Removed.")}
   else if(a==="live-join-me"){LV.msg=null;render()}
   else if(a==="live-notify"){if(confirm(`E-mail everyone in “${p.title}” their personal link?`))liveAdmin({action:"admin.notify",poll:p.id},null).then(r=>{if(r)toast(r.failed?`Sent ${r.sent} e-mails, ${r.failed} failed. Details are in the Log sheet.`:`Sent ${r.sent} e-mails.`)})}}
