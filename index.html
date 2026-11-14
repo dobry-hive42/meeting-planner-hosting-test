@@ -473,6 +473,7 @@ function renderVoter(p){
   let h="";
   if(p.status==="draft"&&!org)h+=`<div class="banner warn"><b>Preview</b><p class="small">This poll hasn't been sent yet. ${esc(nameOf(S.organizer))} is checking it.</p></div>`;
   h+=pollInfo(p,true);
+  if(LIVE)h+=nextBanner(p);
   if(p.closed&&p.final)h+=finalBanner(p);
   if(p.mode==="list"&&invited&&!p.submitted[v])h+=`<div class="banner info"><b>Round 2: only ${p.slots.length} options left.</b><p class="small">Your answers from round 1 are filled in. Check them and save, even if nothing changed.</p></div>`;
   if(p.flexRound&&!p.closed&&invited&&!org)h+=`<div class="banner info"><b>${esc(nameOf(S.organizer))} is asking for a bit of flexibility.</b><p class="small">Below are the dates where your answer decides the most.</p></div>`;
@@ -584,14 +585,14 @@ function renderPeople(p){
 function renderOrgTools(p){
   const r=responded(p).length;const top=r?ranking(p):[];const t=top[0];
   let h=`<section class="card" aria-labelledby="org-h"><h2 id="org-h">Organiser tools</h2>`;
-  if(!LIVE&&!p.closed&&t&&r>=Math.ceil(p.invitees.length/2)&&(!t.reqOk||(t.keyAll&&t.keyOk<t.keyAll))||p.needsRunoff)
-    h+=`<div class="banner warn"><b>No date works for everyone who matters yet.</b><p class="small">${t&&!t.reqOk?"Even the best date misses the host or a must-attend person.":"The best date is missing some key people."} A run-off with the top 3 often settles it. It opens as a draft, so you can check it before sending.</p><div><button class="btn small primary" data-act="runoff">Prepare run-off with top 3</button></div></div>`;
-  if(!LIVE&&!p.closed&&p.status!=="draft"){
+  if(!p.closed&&t&&r>=Math.ceil(p.invitees.length/2)&&(!t.reqOk||(t.keyAll&&t.keyOk<t.keyAll))||p.needsRunoff)
+    h+=`<div class="banner warn"><b>No date works for everyone who matters yet.</b><p class="small">${t&&!t.reqOk?"Even the best date misses the host or a must-attend person.":"The best date is missing some key people."} A run-off with the top 3 often settles it. ${LIVE?"This round then closes and points everyone to round 2; nobody is e-mailed until you press the button there.":"It opens as a draft, so you can check it before sending."}</p><div><button class="btn small primary" data-act="runoff">Prepare run-off with top 3</button></div></div>`;
+  if(!p.closed&&p.status!=="draft"){
     h+=`<div class="stack" style="gap:8px"><h3>Ask for flexibility</h3><p class="small muted">Shows each person the dates where only their “No” stands in the way. Applies to people who already answered.</p>
       <div><button class="btn small${p.flexRound?" toggled":""}" data-act="flex-round" aria-pressed="${p.flexRound}">${p.flexRound?"Flexibility round is on · Turn off":"Start flexibility round"}</button></div></div>`;}
   if(LIVE?!p.final:!p.closed){
     h+=`<div class="stack" style="gap:8px" id="decide"><h3>Decide</h3>${top.length?`<label class="f" for="final-pick">Pick the final ${p.mode==="day"?"date":"time"}<select id="final-pick">${top.slice(0,8).map(s=>`<option value="${s.id}">${esc(slotLabel(p,s.id))} · ${s.total} can come${s.reqOk?"":" · host or must-attend missing"}</option>`).join("")}</select></label>
-      <div class="row"><button class="btn small primary" data-act="close">Close voting and confirm</button>${!LIVE&&p.mode!=="list"?`<button class="btn small" data-act="runoff">Prepare run-off with top 3</button>`:""}</div>`:`<p class="small muted">You can decide once people have answered.</p>`}
+      <div class="row"><button class="btn small primary" data-act="close">Close voting and confirm</button>${p.mode!=="list"?`<button class="btn small" data-act="runoff">Prepare run-off with top 3</button>`:""}</div>`:`<p class="small muted">You can decide once people have answered.</p>`}
       <p class="small muted">${LIVE?(p.closed?"Voting has stopped. Pick the final date to tell everyone.":p.autoClose?`Voting stops after ${fmtDay(p.deadline)}, or earlier when you close it. Then you pick the final date.`:"Voting stays open until you close it."):p.autoClose?`Voting stops on ${fmtDay(p.deadline)} (or earlier when you close it). You then confirm the result; if the host, must-attend or key people can't make the best date, a follow-up round with the top 3 is prepared for you to check. Nothing is sent without you.`:"Voting stays open until you close it. You then confirm the result."}</p></div>`;
   }
   h+=`<div class="row"><button class="btn small" data-act="dup" data-id="${p.id}">Use as template for a new poll</button></div>`;
@@ -895,10 +896,10 @@ document.addEventListener("click",e=>{
     case "flex":{const na=JSON.parse(JSON.stringify(p.answers[S.viewer]));na[t.dataset.sid]="m";commit(p,S.viewer,na);break}
     case "dismiss":p.dismissed[S.viewer]=p.dismissed[S.viewer]||{};p.dismissed[S.viewer][t.dataset.sid]=true;save();persist(p,S.viewer);render();toast("Understood. We won't ask about that one again.");break;
     case "toggle-rank":openRank[t.dataset.sid]=!openRank[t.dataset.sid];render();break;
-    case "flex-round":p.flexRound=!p.flexRound;save();render();toast(p.flexRound?"Flexibility round started. People who answered now see where their answer decides the most.":"Flexibility round turned off.");break;
+    case "flex-round":if(LIVE){liveUpdate(p,{flexRound:!p.flexRound},p.flexRound?"Flexibility round turned off.":"Flexibility round started. People who answered now see where their answer decides the most.");break}p.flexRound=!p.flexRound;save();render();toast(p.flexRound?"Flexibility round started. People who answered now see where their answer decides the most.":"Flexibility round turned off.");break;
     case "close":{const v=document.getElementById("final-pick").value;if(LIVE){liveUpdate(p,{closed:true,final:v},`Decided: ${slotLabel(p,v)}. Everyone sees it now.`);break}p.closed=true;p.final=v;save();render();window.scrollTo(0,0);toast(`Decided: ${slotLabel(p,v)}. Everyone sees it now.`);break}
     case "reopen":if(LIVE){liveUpdate(p,{closed:false,final:null},"Voting is open again.");break}p.closed=false;p.final=null;save();render();break;
-    case "runoff":startRunoff(p);break;
+    case "runoff":if(LIVE){liveRunoff(p);break}startRunoff(p);break;
     case "copy":{const el=document.getElementById(t.dataset.target);const txt=el.textContent;
       const sel=()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Link selected. Copy it with your device's copy command.")};
       try{navigator.clipboard.writeText(txt).then(()=>toast("Link copied."),sel)}catch(x){sel()}break}
@@ -1024,7 +1025,8 @@ function liveErr(code){return({no_poll:"This poll doesn't exist (any more). Chec
   name_required:"Enter your name.",email_invalid:"Enter a valid e-mail, e.g. name@company.eu.",consent_required:"Please tick the box to agree, otherwise we can't store your answers.",
   busy:"The server is busy. Try again in a moment.",offline:"Can't reach the server. Check your connection and try again."})[code]||`Something went wrong (${code}). Try again in a moment.`}
 function applyPoll(r){const sp=r.poll;
-  const p={...sp,status:"sent",example:false,invitees:[],answers:{},submitted:{},dismissed:{},flex:{},tokens:{},needsRunoff:false,flexRound:false,parent:null,
+  const p={...sp,status:"sent",example:false,invitees:[],answers:{},submitted:{},dismissed:{},flex:{},tokens:{},needsRunoff:false,flexRound:!!sp.flexRound,parent:sp.parent||null,next:sp.next||null,
+    slots:sp.mode==="list"?(sp.slots||[]).map(id=>({id})):undefined,
     highlight:sp.highlight||[],excl:sp.excl||{},from:sp.dates[0],to:sp.dates[sp.dates.length-1],hours:null,created:TODAY};
   r.people.forEach(x=>{S.people[x.pid]={id:x.pid,name:x.name,email:""};p.invitees.push(x.pid);p.answers[x.pid]=x.answers||{};p.submitted[x.pid]=!!x.submitted;p.dismissed[x.pid]=x.dismissed||{};p.flex[x.pid]=x.flex||0});
   S.polls[sp.id]=p;if(!S.order.includes(sp.id))S.order.push(sp.id);LV.me[sp.id]=r.me||null;LV.org=sp.org||"";return p;}
@@ -1032,11 +1034,15 @@ function applyPoll(r){const sp=r.poll;
 function liveRoles(){const id=S.route.v==="poll"?S.route.id:null;const mine=id?LV.me[id]:null;
   S.people.__org__={id:"__org__",name:(id&&S.polls[id]&&S.polls[id].org)||"the organiser",email:""};
   if(isOrg()){S.organizer=mine||"__org__";S.viewer=S.organizer}else{S.organizer="__org__";S.viewer=mine||"__anon__"}}
+/* round 2 (Q54): the round-1 key also opens round 2 on this device */
+async function liveGet(id){let r=await api({action:"get",poll:id,token:LS.tokens[id]||""});
+  if(r.ok&&!r.me&&r.poll.parent&&LS.tokens[r.poll.parent]){const r2=await api({action:"get",poll:id,token:LS.tokens[r.poll.parent]});if(r2.ok&&r2.me){LS.tokens[id]=LS.tokens[r.poll.parent];lsSave();r=r2}}
+  return r;}
 async function liveLoad(){LV.loading=true;LV.err="";render();
   try{if(isOrg()){const l=await api({action:"admin.list",key:LS.admin});
       if(!l.ok){if(l.error==="not_allowed"){LS.admin="";lsSave();LV.err="This organiser link isn't valid (any more)."}else LV.err=liveErr(l.error)}
-      else{S.order=[];for(const x of l.polls){const r=await api({action:"get",poll:x.id,token:LS.tokens[x.id]||""});if(r.ok)applyPoll(r)}}}
-    if(LPOLL&&!S.polls[LPOLL]){const r=await api({action:"get",poll:LPOLL,token:LS.tokens[LPOLL]||""});if(r.ok)applyPoll(r);else LV.err=liveErr(r.error)}}
+      else{S.order=[];for(const x of l.polls){const r=await liveGet(x.id);if(r.ok)applyPoll(r)}}}
+    if(LPOLL&&!S.polls[LPOLL]){const r=await liveGet(LPOLL);if(r.ok)applyPoll(r);else LV.err=liveErr(r.error)}}
   catch(e){LV.err=liveErr(e.message==="offline"?"offline":"server")}
   LV.loading=false;render();}
 async function liveRefresh(id){if(!id||draftChanged())return;try{const r=await api({action:"get",poll:id,token:LS.tokens[id]||""});if(r.ok){applyPoll(r);render()}}catch(e){}}
@@ -1048,7 +1054,7 @@ function liveScreen(){liveRoles();let h="";
   if(LV.loading)h=head+`<p class="muted" role="status">Loading…</p>`;
   else if(LV.err)h=head+`<div class="banner warn" role="alert"><b>${esc(LV.err)}</b><div><button class="btn small" data-act="live-retry">Try again</button></div></div>`;
   else if(!isOrg()&&!LPOLL)h=head+`<div class="card"><h1>Team Meeting Planner</h1><p>Open the link you got from the organiser to see the poll.</p></div>`;
-  else if(!isOrg()&&S.viewer==="__anon__"){const p=S.polls[LPOLL];h=head+`<div class="stack">${pollInfo(p,true)}${p.closed?(p.final?finalBanner(p):`<div class="banner info"><b>Voting on this poll has stopped.</b></div>`):renderJoin(p)}</div>`}
+  else if(!isOrg()&&S.viewer==="__anon__"){const p=S.polls[LPOLL];h=head+`<div class="stack">${pollInfo(p,true)}${p.closed?(p.final?finalBanner(p):p.next?nextBanner(p):`<div class="banner info"><b>Voting on this poll has stopped.</b></div>`):renderJoin(p)}</div>`}
   else return false;
   $app.innerHTML=h+liveFooter();renderAdmin();renderSaveBar();return true;}
 function renderJoin(p){const m=LV.msg;
@@ -1091,13 +1097,24 @@ async function liveCreate(){const st=S.setup;LV.busy=true;render();const body=li
   S.setup=newSetup();save();resetTabs();S.route={v:"poll",id};draft=null;render();window.scrollTo(0,0);
   toast(st.editingId?"Changes saved.":"Poll created. Copy the link below and send it to the team.");}
 function liveLink(p){return location.origin+location.pathname+"?p="+encodeURIComponent(p.id)}
-function liveShareBox(p){return `<div class="stack" style="gap:6px"><span class="eyebrow">Link for the team</span><div class="linkbox"><code id="lk-share">${esc(liveLink(p))}</code><button class="btn small" data-act="copy" data-target="lk-share">Copy</button></div>
-  <p class="small muted">Send it by e-mail or chat. Each person joins with their name and e-mail and can change only their own answers.</p></div>`}
+function liveShareBox(p){if(p.next)return nextBanner(p);return `<div class="stack" style="gap:6px"><span class="eyebrow">Link for the team</span><div class="linkbox"><code id="lk-share">${esc(liveLink(p))}</code><button class="btn small" data-act="copy" data-target="lk-share">Copy</button></div>
+  <p class="small muted">Send it by e-mail or chat. Each person joins with their name and e-mail and can change only their own answers.</p>
+  ${p.parent?`<div class="row"><button class="btn small primary" data-act="live-notify">E-mail everyone their round-2 link</button></div><p class="small muted">Sends each person from round 1 their own link. Their answers from round 1 are filled in; they check them and save.</p>`:""}</div>`}
 function liveManage(p,x){return `<label class="sr" for="rl-${x}">Role of ${esc(nameOf(x))}</label><select id="rl-${x}" data-act="live-role" data-pid="${x}" style="width:auto;min-height:36px">${ROLES.map(([v,l])=>`<option value="${v}" ${role(p,x)===v?"selected":""}>${l}</option>`).join("")}</select><button class="btn small" data-act="live-hide" data-pid="${x}">Remove</button>`}
 function liveAction(a,t,p){
   if(a==="live-retry"){LV.err="";liveLoad()}
   else if(a==="live-hide"){if(confirm(`Remove ${nameOf(t.dataset.pid)} from this poll? Their answers stop counting and nobody sees them.`))liveAdmin({action:"admin.person",poll:p.id,pid:t.dataset.pid,hidden:true},"Removed.")}
-  else if(a==="live-join-me"){LV.msg=null;render()}}
+  else if(a==="live-join-me"){LV.msg=null;render()}
+  else if(a==="live-notify"){if(confirm(`E-mail everyone in “${p.title}” their personal link?`))liveAdmin({action:"admin.notify",poll:p.id},null).then(r=>{if(r)toast(r.failed?`Sent ${r.sent} e-mails, ${r.failed} failed. Details are in the Log sheet.`:`Sent ${r.sent} e-mails.`)})}}
+async function liveRunoff(p){const top=ranking(p).slice(0,3).map(s=>s.id);if(top.length<2){toast("A run-off needs at least two options with answers.");return}
+  if(!confirm(`Start round 2 with the top ${top.length}: ${top.map(x=>slotLabel(p,x)).join(", ")}? This round closes and points everyone to round 2.`))return;
+  const r=await liveAdmin({action:"admin.runoff",poll:p.id,slots:top},null);if(!r)return;
+  applyPoll({poll:r.poll,people:r.people,me:null});await liveRefresh0(p.id);
+  const g=await liveGet(r.poll.id);if(g.ok)applyPoll(g);
+  resetTabs();S.route={v:"poll",id:r.poll.id};draft=null;render();window.scrollTo(0,0);
+  toast("Round 2 is ready. Copy the link or e-mail everyone their personal link.");}
+function nextBanner(p){if(!p.next)return "";const q=S.polls[p.next];
+  return `<div class="banner info"><b>Voting continues in round 2${q?`: only ${(q.slots||[]).length} options left`:""}.</b><div><a href="${esc(location.pathname+"?p="+encodeURIComponent(p.next))}">Open round 2</a></div></div>`}
 function liveFooter(){return `<footer class="small" style="margin-top:32px;padding-top:12px;border-top:1px solid var(--line)"><a href="privacy.html" style="color:var(--muted)">Privacy</a></footer>`}
 
 render();
