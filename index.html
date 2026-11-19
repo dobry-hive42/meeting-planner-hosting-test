@@ -30,7 +30,7 @@ a{color:var(--accent);text-decoration:underline}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .brand{font-family:var(--display);font-weight:700;font-size:1.05rem}
 .brand small{font-family:var(--body);font-weight:400;color:var(--muted);font-size:.8rem;margin-left:6px}
-.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
 .stack{display:flex;flex-direction:column;gap:16px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .between{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
@@ -43,7 +43,7 @@ a{color:var(--accent);text-decoration:underline}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.small{min-height:36px;padding:4px 12px;font-size:.85rem}
 .btn.danger{border-color:var(--no);color:var(--no)}
-.adminbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 16px}
+.adminbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;flex-basis:100%;margin-top:-4px;text-align:right}
 .adminwho{overflow-wrap:anywhere;min-width:0}
 .btn.danger.primary{background:var(--no);color:#fff}
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -430,8 +430,8 @@ function renderInner(){
         <button class="navbtn" data-act="go-list" ${S.route.v==="list"||S.route.v==="poll"?'aria-current="page"':""}>${T("nav.polls")}</button>
         ${LIVE?"":`<button class="navbtn" data-act="go-booking" ${S.route.v==="booking"?'aria-current="page"':""}>Book with me</button>`}${langSwitch()}</nav>`;
     }else{html+=LIVE?`<span class="row"><span class="tag">${T("head.you",{name:esc(nameOf(v))})}</span>${LS.admin||LS.session?`<button class="linkbtn" data-act="live-orgview">${T("head.orgView")}</button>`:""}${langSwitch()}</span>`:`<span class="tag">Opened from ${esc(nameOf(v))}'s personal link</span>`}
+    if(LIVE&&v===S.organizer)html+=adminBar();   /* top right, under the language switch (Martin 19. 11.) */
     html+=`</header>`;
-    if(LIVE&&v===S.organizer)html+=adminBar();
     if(v!==S.organizer&&(S.route.v!=="poll"||!curPoll()||!curPoll().invitees.includes(v))){S.route={v:"poll",id:S.order.find(id=>S.polls[id].invitees.includes(v))||"xmas"}}
     if(S.route.v==="list")html+=renderList();
     else if(S.route.v==="create")html+=renderCreate();
