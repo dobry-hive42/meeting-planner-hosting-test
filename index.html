@@ -1186,7 +1186,12 @@ function liveFooter(){return `<footer class="small" style="margin-top:32px;paddi
 function langSwitch(){if(!LIVE)return "";return `<span class="langsw" role="group" aria-label="${esc(T("lang.label"))}">${LANGS.filter(l=>I18N[l]).map(l=>`<button type="button" class="langbtn" data-act="lang" data-v="${l}" lang="${l}" aria-pressed="${l===LANG}">${l.toUpperCase()}</button>`).join("")}</span>`}
 function privacyHref(){return LANG==="en"?"privacy.html":`privacy-${LANG}.html`}
 function setLang(l){if(!LANGS.includes(l)||!I18N[l])return;LANG=l;try{localStorage.setItem("mp-lang",l)}catch(e){}document.documentElement.lang=l;
-  setLangArrays();setRoleLabels();for(const y in HOLCACHE)delete HOLCACHE[y];render();liveLangToServer()}
+  setLangArrays();setRoleLabels();for(const y in HOLCACHE)delete HOLCACHE[y];
+  /* keep what was typed: a new language redraws the page (Martin 19. 11.: the join form came back empty) */
+  const kept=[...document.querySelectorAll("#app input[id],#app textarea[id],#app select[id]")].map(e=>[e.id,e.type==="checkbox"||e.type==="radio"?e.checked:e.value,e===document.activeElement]);
+  render();
+  kept.forEach(([id,v,f])=>{const e=document.getElementById(id);if(!e)return;if(e.type==="checkbox"||e.type==="radio")e.checked=v;else e.value=v;if(f)e.focus()});
+  liveLangToServer()}
 async function liveLangToServer(){if(!LIVE)return;for(const id of Object.keys(LS.tokens||{})){if(!S.polls[id]||!LV.me[id])continue;try{await api({action:"lang",poll:id,token:LS.tokens[id],lang:LANG})}catch(e){}}}
 
 render();
